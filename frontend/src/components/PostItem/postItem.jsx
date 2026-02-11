@@ -1,9 +1,14 @@
 import "./postItem.css";
+import { Link } from "react-router-dom";
 
 function PostItem({ post }) {
     return (
         <li className="post-card">
-            <h3>{post.title}</h3>
+            <h3>
+                <Link to={`/posts/${post.id}`}>
+                    {post.title}
+                </Link>
+            </h3>
             <p>Author: {post.author}</p>
             <p>Likes: {post.likes}</p>
         </li>
