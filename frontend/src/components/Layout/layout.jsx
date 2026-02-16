@@ -1,4 +1,4 @@
-import Navigation from "../Navigation/Navigation";
+import Navigation from "../Navigation/Navigation.jsx";
 
 function Layout({ children }) {
     return (

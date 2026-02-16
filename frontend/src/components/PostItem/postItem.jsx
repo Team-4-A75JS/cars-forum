@@ -1,4 +1,4 @@
-import "./postItem.css";
+import "./PostItem.css";
 import { Link } from "react-router-dom";
 
 function PostItem({ post }) {
