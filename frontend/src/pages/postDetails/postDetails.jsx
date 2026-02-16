@@ -1,5 +1,6 @@
 import { useParams } from "react-router-dom";
 import { getAllPosts } from "../../services/postService";
+import Comments from "../../components/Comments/Comments";
 
 function PostDetails() {
     const { postId } = useParams();
@@ -17,6 +18,7 @@ function PostDetails() {
             <p><strong>Author:</strong> {post.author}</p>
             <p><strong>Likes:</strong> {post.likes}</p>
             <p>{post.content}</p>
+            <Comments></Comments>
         </div>
     );
 }
