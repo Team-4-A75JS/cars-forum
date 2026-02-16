@@ -1,7 +1,25 @@
-import "./home.css"
-import PostItem from "../../components/PostItem/postItem";
+import "./home.css";
+import PostItem from "../../components/PostItem/postItem.jsx";
+import { useEffect } from "react";
+import { supabase } from "../../config/supabase-config.js";
 
 function Home() {
+
+  
+  useEffect(() => {                                                          
+    const testConnection = async () => {
+      const { data, error } = await supabase.auth.getSession();
+
+      if (error) {
+        console.log("Supabase error:", error);
+      } else {
+        console.log("Supabase connected!");
+        console.log("Session:", data);
+      }
+    };
+    testConnection();
+  }, []);
+
   const posts = [
     {
       id: 1,
@@ -27,6 +45,15 @@ function Home() {
     <div className="home-container">
       <h1>Latest Posts</h1>
 
+      <button
+        onClick={async () => {
+          const { data, error } = await supabase.auth.getSession();
+          console.log("CLICK RESULT:", { data, error });
+        }}
+      >
+        Test Supabase
+      </button>
+
       <ul>
         {posts.map((post) => (
           <PostItem key={post.id} post={post} />
@@ -34,7 +61,6 @@ function Home() {
       </ul>
     </div>
   );
-
 }
 
 export default Home;
