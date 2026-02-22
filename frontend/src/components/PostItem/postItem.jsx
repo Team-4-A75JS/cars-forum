@@ -11,6 +11,7 @@ function PostItem({ post }) {
             </h3>
             <p>Author: {post.author}</p>
             <p>Likes: {post.likes}</p>
+            <p>Comments: {post.comments ? post.comments.length : 0}</p>
         </li>
     );
 }
