@@ -1,7 +1,32 @@
 import { Link } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { supabase } from "../../../frontend/src/config/supabase-config";
+import { logoutUser, getSession } from "../../services/authService";
 import "./Navigation.css";
 
 function Navigation() {
+  const [hasSession, setHasSession] = useState(false);
+
+  useEffect(() => {
+    const checkSession = async () => {
+      const session = await getSession();
+      setHasSession(Boolean(session));
+    };
+    checkSession();
+
+    const { data } = supabase.auth.onAuthStateChange(() => {
+      checkSession();
+    });
+
+    return () => {
+      data?.subscription?.unsubscribe();
+    };
+  }, []);
+
+  const handleLogout = async () => {
+    await logoutUser();
+    setHasSession(false);
+  };
   return (
     <nav className="nav">
       <ul className="nav-list">
@@ -9,17 +34,22 @@ function Navigation() {
           <Link to="/">Home</Link>
         </li>
 
-        <li>
-          <Link to="/login">Login</Link>
-        </li>
+        {!hasSession && (
+          <>
+            <li>
+              <Link to="/login">Login</Link>
+            </li>
+            <li>
+              <Link to="/register">Register</Link>
+            </li>
+          </>
+        )}
 
-        <li>
-          <Link to="/register">Register</Link>
-        </li>
-
-        <li>
-          <Link to="/create">Create Post</Link>
-        </li>
+        {hasSession && (
+          <li>
+            <button onClick={handleLogout}>Logout</button>
+          </li>
+        )}
       </ul>
     </nav>
   );
