@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { useEffect, useState } from "react";
-import { supabase } from "../../../frontend/src/config/supabase-config";
+import { supabase } from "../../config/supabase-config";
 import { logoutUser, getSession } from "../../services/authService";
 import "./Navigation.css";
 
