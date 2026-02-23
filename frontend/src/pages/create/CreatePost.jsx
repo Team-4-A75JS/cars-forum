@@ -6,6 +6,7 @@ function CreatePost() {
     const [title, setTitle] = useState("");
     const [content, setContent] = useState("");
     const [author, setAuthor] = useState("");
+    const [tags, setTag] = useState("");
 
     const navigate = useNavigate();
 
@@ -15,7 +16,8 @@ function CreatePost() {
         addPost({
             title,
             content,
-            author
+            author, 
+            tags
         });
 
         navigate("/");
@@ -49,6 +51,15 @@ function CreatePost() {
                     <input
                         value={author}
                         onChange={(e) => setAuthor(e.target.value)}
+                        required
+                    />
+                </div>
+                
+                <div>
+                    <label>Tags:</label><br />
+                    <input
+                        value={tags}
+                        onChange={(e) => setTag(e.target.value)}
                         required
                     />
                 </div>

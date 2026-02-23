@@ -36,11 +36,13 @@ function PostDetails() {
 
     return (
         <div>
+            <h6>{post.tags}</h6>
             <h1>{post.title}</h1>
+            <p>{post.content}</p>
             <p><strong>Author:</strong> {post.author}</p>
             <p><strong>Likes:</strong> {likes}</p>
             <button onClick={handleLike}>👍 Like</button>
-            <p>{post.content}</p>
+            
 
             <h2>Comments</h2>
             <CommentList comments={comments} />

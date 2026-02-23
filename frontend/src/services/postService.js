@@ -2,8 +2,10 @@ const posts = [
   {
     id: 1,
     title: "BMW M3 engine problem",
+    content: "Hello, my M3 engine seems to be misfiring, could anyone provide any insight as to how I could properly identify the issue at hand?",
     author: "Ivan",
     likes: 12,
+    tags: "BMW",
     comments: [
       {
         id: 1,
@@ -20,8 +22,10 @@ const posts = [
   {
     id: 2,
     title: "Audi A4 suspension noise",
+    content: "Greetings! My Audi is wayyy too noisy nowadays why is it so?",
     author: "Petar",
     likes: 5,
+    tags: "Audi",
     comments: [
       {
         id: 1,
@@ -33,8 +37,10 @@ const posts = [
   {
     id: 3,
     title: "Mercedes C220 tuning ideas",
+    content: "Hi! I just recently bought my C220 and I was wondering what I could potentially could/should do to it?",
     author: "Georgi",
     likes: 20,
+    tags: "Mercedes",
     comments: [
       {
         id: 1,
@@ -75,6 +81,7 @@ export function addPost(newPost) {
     content: newPost.content,
     author: newPost.author,
     likes: 0,
+    tags: newPost.tags,
     comments: []
   });
 }

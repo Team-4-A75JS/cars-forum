@@ -1,5 +1,5 @@
 import "./Home.css"
-import PostItem from "../../components/PostItem/PostItem.jsx";
+import PostItem from "../../components/PostItem/postItem.jsx";
 import { getAllPosts } from "../../services/postService.js";
 import PostList from "../../components/PostList/PostList.jsx";
 import { useState } from "react";
@@ -10,7 +10,7 @@ function Home() {
   const posts = getAllPosts();
 
   let filteredPosts = posts.filter(post =>
-    post.title.toLowerCase().includes(searchTerm.toLowerCase())
+    post.title.toLowerCase().includes(searchTerm.toLowerCase()) || post.tags.toLowerCase().includes(searchTerm.toLowerCase())
   )
 
   if (sortBy === 'likes') {
@@ -26,7 +26,7 @@ function Home() {
       <div className="controls">
         <input
           type="text"
-          placeholder="Search by title..."
+          placeholder="Search by title or tag..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
         />
