@@ -59,6 +59,14 @@ export function getAllPosts() {
   return posts;
 }
 
+export function deletePost(postId) {
+  const index = posts.findIndex(p => p.id === postId)
+
+  if (index !== -1){
+    posts.splice(index,1)
+  }
+}
+
 export function likePost(postId) {
   const post = posts.find(p => p.id === postId);
   if (post) {
