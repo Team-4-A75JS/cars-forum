@@ -61,6 +61,36 @@ before update on public.profiles
 for each row
 execute function public.set_updated_at();
 
+-- ======================================================
+-- Auto-create profile on new auth user
+-- ======================================================
+
+create or replace function public.handle_new_user()
+returns trigger
+language plpgsql
+security definer
+as $$
+begin
+  insert into public.profiles (id, username, first_name, last_name)
+  values (
+    new.id,
+    coalesce(new.raw_user_meta_data->>'username', 'user_' || substring(new.id::text, 1, 8)),
+    coalesce(new.raw_user_meta_data->>'first_name', 'First'),
+    coalesce(new.raw_user_meta_data->>'last_name', 'Last')
+  )
+  on conflict (id) do nothing;
+
+  return new;
+end;
+$$;
+
+drop trigger if exists on_auth_user_created on auth.users;
+
+create trigger on_auth_user_created
+after insert on auth.users
+for each row
+execute function public.handle_new_user();
+
 -- =====================================================
 -- 2. Posts table
 -- =====================================================
