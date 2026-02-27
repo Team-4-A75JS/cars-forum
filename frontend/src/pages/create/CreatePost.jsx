@@ -5,22 +5,25 @@ import { useNavigate } from "react-router-dom";
 function CreatePost() {
     const [title, setTitle] = useState("");
     const [content, setContent] = useState("");
-    const [author, setAuthor] = useState("");
-    const [tags, setTag] = useState("");
+    const [loading, setLoading] = useState(false);
+    const [errorMsg, setErrorMsg] = useState("");
 
     const navigate = useNavigate();
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
+        setLoading(true);
+        setErrorMsg("");
 
-        addPost({
-            title,
-            content,
-            author, 
-            tags
-        });
+        try {
+            await addPost({ title, content });
+            navigate("/");
+        } catch (error) {
+            setErrorMsg(error.message || "Failed to create post.");
+        } finally {
+            setLoading(false);
+        }
 
-        navigate("/");
     };
 
     return (
@@ -33,6 +36,8 @@ function CreatePost() {
                     <input
                         value={title}
                         onChange={(e) => setTitle(e.target.value)}
+                        minLength={16}
+                        maxLength={64}
                         required
                     />
                 </div>
@@ -42,31 +47,19 @@ function CreatePost() {
                     <textarea
                         value={content}
                         onChange={(e) => setContent(e.target.value)}
-                        required
-                    />
-                </div>
-
-                <div>
-                    <label>Author:</label><br />
-                    <input
-                        value={author}
-                        onChange={(e) => setAuthor(e.target.value)}
-                        required
-                    />
-                </div>
-                
-                <div>
-                    <label>Tags:</label><br />
-                    <input
-                        value={tags}
-                        onChange={(e) => setTag(e.target.value)}
+                        minLength={32}
+                        maxLength={8192}
                         required
                     />
                 </div>
 
                 <br />
-                <button type="submit">Create Post</button>
+                <button type="submit" disabled={loading}>
+                    {loading ? "Creating..." : "Create Post"}
+                </button>
             </form>
+
+            {errorMsg && <p style={{ color: "red" }}>{errorMsg}</p>}
         </div>
     );
 }

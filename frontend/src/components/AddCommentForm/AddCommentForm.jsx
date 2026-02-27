@@ -1,15 +1,19 @@
 import { useState } from "react";
 
-function AddCommentForm({ onAddComment }) {
+function AddCommentForm({ onAddComment, isSubmitting = false }) {
     const [text, setText] = useState("")
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
 
         if (text.trim() === "") return;
 
-        onAddComment(text)
-        setText("");
+        try {
+            await onAddComment(text);
+            setText("");
+        } catch {
+            // Error state is handled by the parent component.
+        }
     }
 
     return (
@@ -18,9 +22,12 @@ function AddCommentForm({ onAddComment }) {
                 placeholder="Write a comment..."
                 value={text}
                 onChange={(e) => setText(e.target.value)}
+                disabled={isSubmitting}
             />
 
-            <button type="submit">Add Comment</button>
+            <button type="submit" disabled={isSubmitting}>
+                {isSubmitting ? "Adding..." : "Add Comment"}
+            </button>
         </form>
     )
 }
