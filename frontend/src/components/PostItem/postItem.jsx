@@ -2,6 +2,10 @@ import "./PostItem.css";
 import { Link } from "react-router-dom";
 
 function PostItem({ post }) {
+    const commentsCount = typeof post.commentsCount === "number"
+        ? post.commentsCount
+        : (post.comments?.length ?? 0);
+
     return (
         <li className="post-card">
             <h3>
@@ -9,10 +13,10 @@ function PostItem({ post }) {
                     {post.title}
                 </Link>
             </h3>
-            <h6>Tags: {post.tags}</h6>
+            <h6>Tags: {post.tags || "N/A"}</h6>
             <p>Author: {post.author}</p>
             <p>Likes: {post.likes}</p>
-            <p>Comments: {post.comments ? post.comments.length : 0}</p>
+            <p>Comments: {commentsCount}</p>
         </li>
     );
 }
