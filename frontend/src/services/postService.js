@@ -94,3 +94,10 @@ export function addPost(newPost) {
   });
 }
 
+export function updatePost(id, updatedData) {
+  const post = posts.find(p => p.id === id)
+
+  if(post){
+    Object.assign(post,updatedData)
+  }
+}

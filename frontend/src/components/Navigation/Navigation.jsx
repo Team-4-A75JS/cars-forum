@@ -27,6 +27,7 @@ function Navigation() {
     await logoutUser();
     setHasSession(false);
   };
+
   return (
     <nav className="nav">
       <ul className="nav-list">
@@ -46,9 +47,14 @@ function Navigation() {
         )}
 
         {hasSession && (
-          <li>
-            <button onClick={handleLogout}>Logout</button>
-          </li>
+          <>
+            <li>
+              <Link to="/create">Create Post</Link>
+            </li>
+            <li>
+              <button onClick={handleLogout}>Logout</button>
+            </li>
+          </>
         )}
       </ul>
     </nav>

@@ -1,13 +1,23 @@
+import { fetchPosts } from "../../services/postServiceSupabase.js";
 import "./Home.css"
 import PostItem from "../../components/PostItem/postItem.jsx";
 import { getAllPosts } from "../../services/postService.js";
 import PostList from "../../components/PostList/PostList.jsx";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 function Home() {
   const [searchTerm, setSearchTerm] = useState("");
   const [sortBy, setSortBy] = useState("newest");
-  const posts = getAllPosts();
+  const [posts, setPosts] = useState([]) 
+
+  useEffect(() => {
+    async function loadPosts() {
+      const data = await fetchPosts();
+      setPosts(data);
+    }
+    
+    loadPosts();
+  }, []);
 
   let filteredPosts = posts.filter(post =>
     post.title.toLowerCase().includes(searchTerm.toLowerCase()) || post.tags.toLowerCase().includes(searchTerm.toLowerCase())

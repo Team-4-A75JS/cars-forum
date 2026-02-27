@@ -1,6 +1,7 @@
 import { useState } from "react";
-import { addPost } from "../../services/postService";
 import { useNavigate } from "react-router-dom";
+import { createPost } from "../../services/postServiceSupabase";
+import { supabase } from "../../config/supabase-config";
 
 function CreatePost() {
     const [title, setTitle] = useState("");
@@ -10,17 +11,23 @@ function CreatePost() {
 
     const navigate = useNavigate();
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
 
-        addPost({
-            title,
-            content,
-            author, 
-            tags
-        });
+        const { data } = await supabase.auth.getUser();
+        const userId = data.user.id;
 
-        navigate("/");
+        const newPost = {
+            title: title,
+            content: content,
+            author_id: userId
+        };
+
+        const created = await createPost(newPost);
+
+        if (created) {
+            navigate("/");
+        }
     };
 
     return (
