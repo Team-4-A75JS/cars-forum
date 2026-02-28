@@ -7,7 +7,7 @@ function mapPost(postRow, likes = 0, commentsCount = 0) {
     title: postRow.title,
     content: postRow.content,
     author: postRow.profiles?.username ?? "Unknown",
-    tags: "",
+    tags: postRow.tags || "",
     likes,
     commentsCount,
     createdAt: postRow.created_at,
@@ -70,60 +70,161 @@ async function buildPostStats(postIds) {
 }
 
 export async function getAllPosts() {
-  const { data: posts, error } = await supabase
-    .from("posts")
-    .select("id, title, content, created_at, profiles(username)")
-    .order("created_at", { ascending: false });
+  try {
+    console.log("Fetching all posts...");
+    
+    // First, try to fetch posts without the profile join
+    const { data: posts, error: postsError } = await supabase
+      .from("posts")
+      .select("*")
+      .order("created_at", { ascending: false });
 
-  if (error) throw error;
+    if (postsError) {
+      console.error("Posts fetch error:", postsError);
+      throw postsError;
+    }
 
-  const postIds = (posts ?? []).map((post) => post.id);
-  const { likesByPostId, commentsByPostId } = await buildPostStats(postIds);
+    console.log("Raw posts data:", posts);
 
-  return (posts ?? []).map((post) =>
-    mapPost(post, likesByPostId[post.id] ?? 0, commentsByPostId[post.id] ?? 0)
-  );
+    if (!posts || posts.length === 0) {
+      console.log("No posts found in database");
+      return [];
+    }
+
+    // Now fetch author profiles separately
+    const authorIds = [...new Set(posts.map(p => p.author_id))];
+    console.log("Fetching profiles for authors:", authorIds);
+
+    const { data: profiles, error: profilesError } = await supabase
+      .from("profiles")
+      .select("id, username")
+      .in("id", authorIds);
+
+    if (profilesError) {
+      console.warn("Profiles fetch warning (continuing without usernames):", profilesError);
+    }
+
+    const profilesMap = {};
+    (profiles ?? []).forEach(p => {
+      profilesMap[p.id] = p.username;
+    });
+
+    const postIds = posts.map((post) => post.id);
+    const { likesByPostId, commentsByPostId } = await buildPostStats(postIds);
+
+    const mappedPosts = posts.map((post) => ({
+      id: post.id,
+      title: post.title,
+      content: post.content,
+      author: profilesMap[post.author_id] ?? "Unknown",
+      tags: post.tags && post.tags.trim().length > 0 ? post.tags : "",
+      likes: likesByPostId[post.id] ?? 0,
+      commentsCount: commentsByPostId[post.id] ?? 0,
+      createdAt: post.created_at,
+    }));
+
+    console.log("Mapped posts with tags:", mappedPosts.map(p => ({ id: p.id, title: p.title, tags: p.tags })));
+    return mappedPosts;
+  } catch (err) {
+    console.error("getAllPosts exception:", err);
+    throw err;
+  }
 }
 
 export async function getPostById(postId) {
-  const { data: post, error } = await supabase
-    .from("posts")
-    .select("id, title, content, created_at, profiles(username)")
-    .eq("id", postId)
-    .maybeSingle();
+  try {
+    const { data: post, error: postError } = await supabase
+      .from("posts")
+      .select("*")
+      .eq("id", postId)
+      .maybeSingle();
 
-  if (error) throw error;
-  if (!post) return null;
+    if (postError) {
+      console.error("getPostById error:", postError);
+      throw postError;
+    }
 
-  const [{ count: likesCount, error: likesError }, { count: commentsCount, error: commentsError }] =
-    await Promise.all([
-      supabase
-        .from("votes")
-        .select("*", { count: "exact", head: true })
-        .eq("post_id", postId)
-        .is("comment_id", null)
-        .eq("vote_type", 1),
-      supabase
-        .from("comments")
-        .select("*", { count: "exact", head: true })
-        .eq("post_id", postId),
-    ]);
+    if (!post) return null;
 
-  if (likesError) throw likesError;
-  if (commentsError) throw commentsError;
+    // Fetch author profile
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("username")
+      .eq("id", post.author_id)
+      .maybeSingle();
 
-  return mapPost(post, likesCount ?? 0, commentsCount ?? 0);
+    const [{ count: likesCount, error: likesError }, { count: commentsCount, error: commentsError }] =
+      await Promise.all([
+        supabase
+          .from("votes")
+          .select("*", { count: "exact", head: true })
+          .eq("post_id", postId)
+          .is("comment_id", null)
+          .eq("vote_type", 1),
+        supabase
+          .from("comments")
+          .select("*", { count: "exact", head: true })
+          .eq("post_id", postId),
+      ]);
+
+    if (likesError) throw likesError;
+    if (commentsError) throw commentsError;
+
+    return {
+      id: post.id,
+      title: post.title,
+      content: post.content,
+      author: profile?.username ?? "Unknown",
+      tags: post.tags || "",
+      likes: likesCount ?? 0,
+      commentsCount: commentsCount ?? 0,
+      createdAt: post.created_at,
+    };
+  } catch (err) {
+    console.error("getPostById exception:", err);
+    throw err;
+  }
 }
 
 export async function getCommentsByPostId(postId) {
-  const { data: comments, error } = await supabase
-    .from("comments")
-    .select("id, post_id, parent_comment_id, content, created_at, profiles(username)")
-    .eq("post_id", postId)
-    .order("created_at", { ascending: true });
+  try {
+    const { data: comments, error } = await supabase
+      .from("comments")
+      .select("*")
+      .eq("post_id", postId)
+      .order("created_at", { ascending: true });
 
-  if (error) throw error;
-  return (comments ?? []).map(mapComment);
+    if (error) {
+      console.error("getCommentsByPostId error:", error);
+      throw error;
+    }
+
+    if (!comments || comments.length === 0) return [];
+
+    // Fetch author profiles
+    const authorIds = [...new Set(comments.map(c => c.author_id))];
+    const { data: profiles } = await supabase
+      .from("profiles")
+      .select("id, username")
+      .in("id", authorIds);
+
+    const profilesMap = {};
+    (profiles ?? []).forEach(p => {
+      profilesMap[p.id] = p.username;
+    });
+
+    return comments.map(comment => ({
+      id: comment.id,
+      author: profilesMap[comment.author_id] ?? "Unknown",
+      text: comment.content,
+      createdAt: comment.created_at,
+      postId: comment.post_id,
+      parentCommentId: comment.parent_comment_id,
+    }));
+  } catch (err) {
+    console.error("getCommentsByPostId exception:", err);
+    throw err;
+  }
 }
 
 export async function addComment(postId, text, parentCommentId = null) {
@@ -139,33 +240,62 @@ export async function addComment(postId, text, parentCommentId = null) {
       parent_comment_id: parentCommentId,
       content: trimmedText,
     })
-    .select("id, post_id, parent_comment_id, content, created_at, profiles(username)")
+    .select("*")
     .single();
 
   if (error) throw error;
-  return mapComment(newComment);
+
+  // Fetch the author profile
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("username")
+    .eq("id", newComment.author_id)
+    .maybeSingle();
+
+  return {
+    id: newComment.id,
+    author: profile?.username ?? "Unknown",
+    text: newComment.content,
+    createdAt: newComment.created_at,
+    postId: newComment.post_id,
+    parentCommentId: newComment.parent_comment_id,
+  };
 }
 
 export async function addPost(newPost) {
   const title = newPost.title?.trim();
   const content = newPost.content?.trim();
+  const tags = newPost.tags?.trim() || "";
 
   if (!title || !content) {
     throw new Error("Title and content are required.");
   }
 
-  const user = await getAuthenticatedUser();
+  let user;
+  try {
+    user = await getAuthenticatedUser();
+  } catch (authErr) {
+    console.error("Authentication error:", authErr);
+    throw new Error(`Auth failed: ${authErr.message}`);
+  }
+
+  console.log("Creating post with:", { title, content, tags, author_id: user.id });
+
   const { data: post, error } = await supabase
     .from("posts")
     .insert({
       author_id: user.id,
       title,
       content,
+      tags,
     })
     .select("id")
     .single();
 
-  if (error) throw error;
+  if (error) {
+    console.error("Supabase insert error:", error);
+    throw new Error(`Failed to create post: ${error.message}`);
+  }
   return post.id;
 }
 
@@ -176,6 +306,23 @@ export async function deletePost(postId) {
     .eq("id", postId);
 
   if (error) throw error;
+}
+
+export async function updatePost(postId, updates) {
+  const dataToUpdate = {};
+  if (updates.title !== undefined) dataToUpdate.title = updates.title.trim();
+  if (updates.content !== undefined) dataToUpdate.content = updates.content.trim();
+  if (updates.tags !== undefined) dataToUpdate.tags = updates.tags.trim();
+
+  const { data, error } = await supabase
+    .from("posts")
+    .update(dataToUpdate)
+    .eq("id", postId)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
 }
 
 export async function likePost(postId) {
@@ -225,4 +372,17 @@ export async function likePost(postId) {
     liked: !alreadyLiked,
     likes: count ?? 0,
   };
+}
+
+export async function userLikedPost(postId) {
+  const user = await getAuthenticatedUser();
+  const { data, error } = await supabase
+    .from("votes")
+    .select("id")
+    .eq("user_id", user.id)
+    .eq("post_id", postId)
+    .is("comment_id", null)
+    .eq("vote_type", 1);
+  if (error) throw error;
+  return (data ?? []).length > 0;
 }

@@ -1,11 +1,12 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { addPost } from "../../services/postService";
 import { supabase } from "../../config/supabase-config";
-import { createPost } from "../../services/postServiceSupabase";
 
 function CreatePost() {
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
+  const [tags, setTags] = useState("");
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const navigate = useNavigate();
@@ -15,18 +16,22 @@ function CreatePost() {
 
     if (!title.trim()) {
       newErrors.title = "Title is required";
-    } else if (title.length < 5) {
-      newErrors.title = "Title must be at least 5 characters";
+    } else if (title.length < 16) {
+      newErrors.title = "Title must be at least 16 characters";
     } else if (title.length > 64) {
       newErrors.title = "Title must not exceed 64 characters";
     }
 
     if (!content.trim()) {
       newErrors.content = "Content is required";
-    } else if (content.length < 10) {
-      newErrors.content = "Content must be at least 10 characters";
+    } else if (content.length < 32) {
+      newErrors.content = "Content must be at least 32 characters";
     } else if (content.length > 8192) {
       newErrors.content = "Content must not exceed 8192 characters";
+    }
+
+    if (tags.length > 64) {
+      newErrors.tags = "Tags must not exceed 64 characters total";
     }
 
     return newErrors;
@@ -45,28 +50,20 @@ function CreatePost() {
     setIsSubmitting(true);
 
     try {
-      const { data, error } = await supabase.auth.getUser();
-      if (error || !data?.user) {
-        setErrors({ submit: "User not authenticated" });
+      // Check if user is authenticated
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      if (authError || !user) {
+        setErrors({ submit: "You must be logged in to create a post." });
+        setIsSubmitting(false);
         return;
       }
 
-      const postData = {
-        title: title.trim(),
-        content: content.trim(),
-        author_id: data.user.id,
-      };
-
-      const result = await createPost(postData);
-
-      if (result) {
-        navigate("/");
-      } else {
-        setErrors({ submit: "Failed to create post. Please try again." });
-      }
+      await addPost({ title, content, tags });
+      navigate("/");
     } catch (err) {
-      setErrors({ submit: "An error occurred. Please try again." });
-      console.error(err);
+      console.error("Post creation error:", err);
+      const errorMsg = err.message || "Failed to create post. Please try again.";
+      setErrors({ submit: errorMsg });
     } finally {
       setIsSubmitting(false);
     }
@@ -89,7 +86,7 @@ function CreatePost() {
           <input
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            placeholder="Enter post title (5-64 characters)"
+            placeholder="Enter post title (16-64 characters)"
             style={{
               width: "100%",
               padding: "8px",
@@ -105,12 +102,30 @@ function CreatePost() {
         </div>
 
         <div style={{ marginBottom: "15px" }}>
+          <label>Tags:</label>
+          <br />
+          <input
+            value={tags}
+            onChange={(e) => setTags(e.target.value)}
+            placeholder="Comma-separated tags (max 64 chars total)"
+            style={{
+              width: "100%",
+              padding: "8px",
+              borderColor: errors.tags ? "red" : "#ccc",
+              border: "1px solid",
+              borderRadius: "4px",
+            }}
+          />
+          {errors.tags && <div style={{ color: "red", fontSize: "12px", marginTop: "4px" }}>{errors.tags}</div>}
+        </div>
+
+        <div style={{ marginBottom: "15px" }}>
           <label>Content:</label>
           <br />
           <textarea
             value={content}
             onChange={(e) => setContent(e.target.value)}
-            placeholder="Enter post content (10-8192 characters)"
+            placeholder="Enter post content (32-8192 characters)"
             rows="8"
             style={{
               width: "100%",

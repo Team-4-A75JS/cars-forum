@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { fetchPostById, updatePost } from "../../services/postServiceSupabase";
+import { getPostById, updatePost } from "../../services/postService";
 
 function EditPost() {
   const { postId } = useParams();
@@ -8,13 +8,15 @@ function EditPost() {
 
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
+  const [tags, setTags] = useState("");
 
   useEffect(() => {
     const load = async () => {
-      const post = await fetchPostById(postId);
+      const post = await getPostById(postId);
       if (post) {
         setTitle(post.title);
         setContent(post.content);
+        setTags(post.tags || "");
       }
     };
     load();
@@ -26,6 +28,7 @@ function EditPost() {
     const updated = await updatePost(postId, {
       title,
       content,
+      tags,
     });
 
     if (updated) navigate(`/posts/${postId}`);
@@ -43,6 +46,16 @@ function EditPost() {
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             required
+          />
+        </div>
+
+        <div>
+          <label>Tags:</label>
+          <br />
+          <input
+            value={tags}
+            onChange={(e) => setTags(e.target.value)}
+            placeholder="Comma-separated tags"
           />
         </div>
 
