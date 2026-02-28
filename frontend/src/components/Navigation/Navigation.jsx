@@ -1,32 +1,15 @@
 import { Link } from "react-router-dom";
-import { useEffect, useState } from "react";
-import { supabase } from "../../../frontend/src/config/supabase-config";
-import { logoutUser, getSession } from "../../services/authService";
+import { logoutUser } from "../../services/authService";
+import { useAuth } from "../../context/useAuth";
 import "./Navigation.css";
 
 function Navigation() {
-  const [hasSession, setHasSession] = useState(false);
-
-  useEffect(() => {
-    const checkSession = async () => {
-      const session = await getSession();
-      setHasSession(Boolean(session));
-    };
-    checkSession();
-
-    const { data } = supabase.auth.onAuthStateChange(() => {
-      checkSession();
-    });
-
-    return () => {
-      data?.subscription?.unsubscribe();
-    };
-  }, []);
+  const { isAuthed, isAdmin } = useAuth();
 
   const handleLogout = async () => {
     await logoutUser();
-    setHasSession(false);
   };
+
   return (
     <nav className="nav">
       <ul className="nav-list">
@@ -34,7 +17,7 @@ function Navigation() {
           <Link to="/">Home</Link>
         </li>
 
-        {!hasSession && (
+        {!isAuthed && (
           <>
             <li>
               <Link to="/login">Login</Link>
@@ -45,11 +28,22 @@ function Navigation() {
           </>
         )}
 
-        {hasSession && (
+        {isAuthed && isAdmin && (
           <li>
-            <button onClick={handleLogout}>Logout</button>
+            <Link to="/admin">Admin</Link>
           </li>
         )}
+
+        {isAuthed && (
+  <>
+    <li>
+      <Link to="/create">Create Post</Link>
+    </li>
+    <li>
+      <button onClick={handleLogout}>Logout</button>
+    </li>
+  </>
+)}
       </ul>
     </nav>
   );

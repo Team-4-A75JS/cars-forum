@@ -1,12 +1,14 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Routes, Route } from "react-router-dom";
 
-import Home from './pages/home/Home.jsx';
-import Login from './pages/login/login.jsx';
-import Register from './pages/register/register.jsx';
-import Layout from './components/Layout/layout.jsx';
-import PostDetails from './pages/postDetails/postDetails.jsx';
-import CreatePost from './pages/create/CreatePost.jsx';
-import EditPost from './pages/EditPost/EditPost.jsx';
+import Home from "./pages/home/Home.jsx";
+import Login from "./pages/login/login.jsx";
+import Register from "./pages/register/register.jsx";
+import Layout from "./components/Layout/layout.jsx";
+import PostDetails from "./pages/postDetails/postDetails.jsx";
+import CreatePost from "./pages/create/CreatePost.jsx";
+import EditPost from "./pages/EditPost/EditPost.jsx";
+import RequireAdmin from "./components/Guards/RequireAdmin.jsx";
+import AdminDashboard from "./pages/admin/AdminDashboard.jsx";
 
 function App() {
   return (
@@ -16,6 +18,14 @@ function App() {
           <Route path="/" element={<Home />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
+          <Route
+            path="/admin"
+            element={
+              <RequireAdmin>
+                <AdminDashboard />
+              </RequireAdmin>
+            }
+          />
           <Route path="/posts/:postId" element={<PostDetails />} />
           <Route path="/create" element={<CreatePost />} />
           <Route path="/edit/:postId" element={<EditPost />} />
@@ -26,4 +36,3 @@ function App() {
 }
 
 export default App;
-
