@@ -1,31 +1,33 @@
 import { Link } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { supabase } from "../../config/supabase-config";
-import { logoutUser, getSession } from "../../services/authService";
 import "./Navigation.css";
 
 function Navigation() {
-  const [hasSession, setHasSession] = useState(false);
+  const [user, setUser] = useState(null);
 
   useEffect(() => {
-    const checkSession = async () => {
-      const session = await getSession();
-      setHasSession(Boolean(session));
+    const loadUser = async () => {
+      const { data } = await supabase.auth.getUser();
+      setUser(data?.user ?? null);
     };
-    checkSession();
 
-    const { data } = supabase.auth.onAuthStateChange(() => {
-      checkSession();
-    });
+    loadUser();
+
+    const { data: listener } = supabase.auth.onAuthStateChange(
+      (_, session) => {
+        setUser(session?.user ?? null);
+      }
+    );
 
     return () => {
-      data?.subscription?.unsubscribe();
+      listener.subscription.unsubscribe();
     };
   }, []);
 
   const handleLogout = async () => {
-    await logoutUser();
-    setHasSession(false);
+    await supabase.auth.signOut();
+    setUser(null);
   };
 
   return (
@@ -35,7 +37,13 @@ function Navigation() {
           <Link to="/">Home</Link>
         </li>
 
-        {!hasSession && (
+        {user && (
+          <li>
+            <Link to="/create">Create Post</Link>
+          </li>
+        )}
+
+        {!user && (
           <>
             <li>
               <Link to="/login">Login</Link>
@@ -46,15 +54,10 @@ function Navigation() {
           </>
         )}
 
-        {hasSession && (
-          <>
-            <li>
-              <Link to="/create">Create Post</Link>
-            </li>
-            <li>
-              <button onClick={handleLogout}>Logout</button>
-            </li>
-          </>
+        {user && (
+          <li>
+            <button onClick={handleLogout}>Logout</button>
+          </li>
         )}
       </ul>
     </nav>

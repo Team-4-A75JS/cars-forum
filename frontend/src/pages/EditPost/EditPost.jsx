@@ -1,59 +1,66 @@
-import { useParams, useNavigate } from "react-router-dom";
-import { getAllPosts, updatePost } from "../../services/postService";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import { fetchPostById, updatePost } from "../../services/postServiceSupabase";
 
 function EditPost() {
-    const { postId } = useParams();
-    const navigate = useNavigate();
+  const { postId } = useParams();
+  const navigate = useNavigate();
 
-    const posts = getAllPosts();
-    const post = posts.find(p => p.id === Number(postId));
+  const [title, setTitle] = useState("");
+  const [content, setContent] = useState("");
 
-    if (!post) {
-        return <p>Post not found</p>;
-    }
-
-    const [title, setTitle] = useState(post.title);
-    const [content, setContent] = useState(post.content || "");
-    const [error, setError] = useState("");
-
-    const handleSave = () => {
-        if (title.length < 16 || title.length > 64) {
-            setError("Title must be between 16 and 64 characters.");
-            return;
-        }
-
-        if (content.length < 32 || content.length > 8192) {
-            setError("Content must be between 32 and 8192 characters.");
-            return;
-        }
-
-        setError("")
-        updatePost(post.id, { title, content });
-        navigate(`/posts/${post.id}`);
+  useEffect(() => {
+    const load = async () => {
+      const post = await fetchPostById(postId);
+      if (post) {
+        setTitle(post.title);
+        setContent(post.content);
+      }
     };
+    load();
+  }, [postId]);
 
-    return (
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    const updated = await updatePost(postId, {
+      title,
+      content,
+    });
+
+    if (updated) navigate(`/posts/${postId}`);
+  };
+
+  return (
+    <div>
+      <h1>Edit Post</h1>
+
+      <form onSubmit={handleSubmit}>
         <div>
-            <h1>Edit Post</h1>
-
-            {error && <p style={{ color: "red" }}>{error}</p>}
-
-            <input
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-            />
-
-            <textarea
-                value={content}
-                onChange={(e) => setContent(e.target.value)}
-            />
-
-            <button onClick={handleSave}>
-                Save
-            </button>
+          <label>Title:</label>
+          <br />
+          <input
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            required
+          />
         </div>
-    );
+
+        <div>
+          <label>Content:</label>
+          <br />
+          <textarea
+            value={content}
+            onChange={(e) => setContent(e.target.value)}
+            required
+          />
+        </div>
+
+        <br />
+        <button type="submit">Save</button>
+      </form>
+    </div>
+  );
 }
 
-export default EditPost; 
+export default EditPost;

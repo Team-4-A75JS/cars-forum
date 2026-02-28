@@ -111,10 +111,10 @@ create table if not exists public.posts (
 
     -- Constraints
     constraint title_length
-        check (char_length(title) between 16 and 64),
+        check (char_length(title) between 5 and 64),
 
     constraint content_length
-        check (char_length(content) between 32 and 8192)
+        check (char_length(content) between 10 and 8192)
 );
 
 -- Indexes for performance

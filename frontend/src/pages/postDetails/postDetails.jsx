@@ -3,28 +3,26 @@ import { useEffect, useState } from "react";
 import { fetchPostById } from "../../services/postServiceSupabase";
 
 function PostDetails() {
-    const { postId } = useParams();
-    const [post, setPost] = useState(null);
+  const { postId } = useParams();
+  const [post, setPost] = useState(null);
 
-    useEffect(() => {
-        const loadPost = async () => {
-            const data = await fetchPostById(postId);
-            setPost(data);
-        };
+  useEffect(() => {
+    const loadPost = async () => {
+      const data = await fetchPostById(postId);
+      setPost(data);
+    };
 
-        loadPost();
-    }, [postId]);
+    loadPost();
+  }, [postId]);
 
-    if (!post) {
-        return <p>Post not found</p>;
-    }
+  if (!post) return <p>Post not found</p>;
 
-    return (
-        <div>
-            <h1>{post.title}</h1>
-            <p>{post.content}</p>
-        </div>
-    );
+  return (
+    <div>
+      <h1>{post.title}</h1>
+      <p>{post.content}</p>
+    </div>
+  );
 }
 
 export default PostDetails;

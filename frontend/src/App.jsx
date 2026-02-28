@@ -1,11 +1,11 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 
-import Home from './pages/home/home.jsx';
-import Login from './pages/login/login.jsx';
-import Register from './pages/register/register.jsx';
-import Layout from './components/Layout/layout.jsx';
-import PostDetails from './pages/postDetails/postDetails.jsx';
-import CreatePost from './pages/create/CreatePost.jsx';
+import Home from './pages/Home/Home.jsx';
+import Login from './pages/Login/Login.jsx';
+import Register from './pages/Register/Register.jsx';
+import Layout from './components/Layout/Layout.jsx';
+import PostDetails from './pages/PostDetails/PostDetails.jsx';
+import CreatePost from './pages/Create/CreatePost.jsx';
 import EditPost from './pages/EditPost/EditPost.jsx';
 
 function App() {
