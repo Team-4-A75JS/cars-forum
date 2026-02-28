@@ -1,4 +1,5 @@
-import { supabase } from "../config/supabase-config";
+import { supabase } from "../../frontend/src/config/supabase-config";
+
 export async function registerUser({ email, password, username, firstName, lastName }) {
     const { data, error } = await supabase.auth.signUp({
         email,
@@ -13,6 +14,13 @@ export async function registerUser({ email, password, username, firstName, lastN
     });
 
     if (error) throw error;
+
+    try {
+        await ensureProfileForCurrentUser(data?.user ?? null);
+    } catch (profileError) {
+        console.warn("Profile sync failed after register:", profileError.message);
+    }
+
     return data;
 }
 
@@ -23,6 +31,13 @@ export async function loginUser({ email, password }) {
     });
 
     if (error) throw error;
+
+    try {
+        await ensureProfileForCurrentUser(data?.user ?? null);
+    } catch (profileError) {
+        console.warn("Profile sync failed after login:", profileError.message);
+    }
+
     return data;
 }
 

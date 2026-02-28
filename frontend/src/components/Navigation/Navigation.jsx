@@ -1,13 +1,31 @@
 import { Link } from "react-router-dom";
-import { logoutUser } from "../../services/authService";
-import { useAuth } from "../../context/useAuth";
+import { useEffect, useState } from "react";
+import { supabase } from "../../../frontend/src/config/supabase-config";
+import { logoutUser, getSession } from "../../services/authService";
 import "./Navigation.css";
 
 function Navigation() {
-  const { isAuthed, isAdmin } = useAuth();
+  const [hasSession, setHasSession] = useState(false);
+
+  useEffect(() => {
+    const checkSession = async () => {
+      const session = await getSession();
+      setHasSession(Boolean(session));
+    };
+    checkSession();
+
+    const { data } = supabase.auth.onAuthStateChange(() => {
+      checkSession();
+    });
+
+    return () => {
+      data?.subscription?.unsubscribe();
+    };
+  }, []);
 
   const handleLogout = async () => {
     await logoutUser();
+    setHasSession(false);
   };
 
   return (
@@ -17,7 +35,7 @@ function Navigation() {
           <Link to="/">Home</Link>
         </li>
 
-        {!isAuthed && (
+        {!hasSession && (
           <>
             <li>
               <Link to="/login">Login</Link>
@@ -28,7 +46,7 @@ function Navigation() {
           </>
         )}
 
-        {isAuthed && isAdmin && (
+        {hasSession && (
           <li>
             <Link to="/admin">Admin</Link>
           </li>

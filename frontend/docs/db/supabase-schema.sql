@@ -105,6 +105,7 @@ create table if not exists public.posts (
 
     title text not null,
     content text not null,
+    tags text not null default '',
 
     created_at timestamptz not null default now(),
     updated_at timestamptz not null default now(),
@@ -114,7 +115,10 @@ create table if not exists public.posts (
         check (char_length(title) between 16 and 64),
 
     constraint content_length
-        check (char_length(content) between 32 and 8192)
+        check (char_length(content) between 32 and 8192),
+
+    constraint tags_length
+        check (char_length(tags) <= 64)
 );
 
 -- Indexes for performance
