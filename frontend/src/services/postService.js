@@ -1,36 +1,14 @@
 import { supabase } from "../config/supabase-config";
-import { ensureProfileForCurrentUser } from "./authService";
+// import { ensureProfileForCurrentUser } from "./authService";
 
-function mapPost(postRow, likes = 0, commentsCount = 0) {
-  return {
-    id: postRow.id,
-    title: postRow.title,
-    content: postRow.content,
-    author: postRow.profiles?.username ?? "Unknown",
-    tags: postRow.tags || "",
-    likes,
-    commentsCount,
-    createdAt: postRow.created_at,
-  };
-}
 
-function mapComment(commentRow) {
-  return {
-    id: commentRow.id,
-    author: commentRow.profiles?.username ?? "Unknown",
-    text: commentRow.content,
-    createdAt: commentRow.created_at,
-    postId: commentRow.post_id,
-    parentCommentId: commentRow.parent_comment_id,
-  };
-}
 
 async function getAuthenticatedUser() {
   const { data, error } = await supabase.auth.getUser();
   if (error) throw error;
   if (!data.user) throw new Error("You must be logged in.");
 
-  await ensureProfileForCurrentUser(data.user);
+  // await ensureProfileForCurrentUser(data.user);
   return data.user;
 }
 

@@ -7,6 +7,8 @@ import Layout from './components/Layout/layout.jsx';
 import PostDetails from './pages/postDetails/postDetails.jsx';
 import CreatePost from './pages/create/CreatePost.jsx';
 import EditPost from './pages/EditPost/EditPost.jsx';
+import RequireAdmin from './components/Guards/RequireAdmin.jsx';
+import AdminDashboard from './pages/admin/AdminDashboard.jsx';
 
 function App() {
   return (

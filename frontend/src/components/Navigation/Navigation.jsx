@@ -1,33 +1,18 @@
-/* eslint-disable no-undef */
 import { Link } from "react-router-dom";
-import { useEffect, useState } from "react";
-import { supabase } from "../../config/supabase-config";
-import { logoutUser, getSession } from "../../services/authService";
+import { logoutUser } from "../../services/authService";
+import { useAuth } from "../../context/useAuth";
+import { useNavigate } from "react-router-dom";
 import "./Navigation.css";
 
 function Navigation() {
-  const [hasSession, setHasSession] = useState(false);
+  const { isAuthed, isAdmin } = useAuth();
 
-  useEffect(() => {
-    const checkSession = async () => {
-      const session = await getSession();
-      setHasSession(Boolean(session));
-    };
-    checkSession();
+const navigate = useNavigate();
 
-    const { data } = supabase.auth.onAuthStateChange(() => {
-      checkSession();
-    });
-
-    return () => {
-      data?.subscription?.unsubscribe();
-    };
-  }, []);
-
-  const handleLogout = async () => {
-    await logoutUser();
-    setHasSession(false);
-  };
+const handleLogout = async () => {
+  await logoutUser();
+  navigate("/", { replace: true });
+};
 
   return (
     <nav className="nav">
@@ -36,7 +21,7 @@ function Navigation() {
           <Link to="/">Home</Link>
         </li>
 
-        {!hasSession && (
+        {!isAuthed && (
           <>
             <li>
               <Link to="/login">Login</Link>
@@ -47,23 +32,22 @@ function Navigation() {
           </>
         )}
 
-        {hasSession && (
+        {isAuthed && isAdmin && (
           <li>
             <Link to="/admin">Admin</Link>
           </li>
         )}
 
-        // eslint-disable-next-line no-undef
         {isAuthed && (
-  <>
-    <li>
-      <Link to="/create">Create Post</Link>
-    </li>
-    <li>
-      <button onClick={handleLogout}>Logout</button>
-    </li>
-  </>
-)}
+          <>
+            <li>
+              <Link to="/create">Create Post</Link>
+            </li>
+            <li>
+              <button onClick={handleLogout}>Logout</button>
+            </li>
+          </>
+        )}
       </ul>
     </nav>
   );

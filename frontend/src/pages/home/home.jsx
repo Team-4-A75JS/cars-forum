@@ -1,4 +1,4 @@
-import "./Home.css"
+import "./Home.css";
 import { getAllPosts } from "../../services/postService.js";
 import PostList from "../../components/PostList/PostList.jsx";
 import { useEffect, useMemo, useState } from "react";
@@ -19,8 +19,11 @@ function Home() {
 
       try {
         const data = await getAllPosts();
+        console.log("✅ USING postService.js from src/services/postService.js");
+        console.log("getAllPosts returned:", data);
+        console.log("isArray?", Array.isArray(data));
         if (isMounted) {
-        setPosts(data);
+          setPosts(Array.isArray(data) ? data : []);
         }
       } catch (error) {
         if (isMounted) {
@@ -28,8 +31,8 @@ function Home() {
         }
       } finally {
         if (isMounted) {
-        setLoading(false);
-      }
+          setLoading(false);
+        }
       }
     };
 
@@ -42,9 +45,10 @@ function Home() {
 
   const filteredPosts = useMemo(() => {
     const normalizedSearch = searchTerm.trim().toLowerCase();
-    const visiblePosts = posts.filter((post) =>
-      post.title.toLowerCase().includes(normalizedSearch)
-      || (post.tags ?? "").toLowerCase().includes(normalizedSearch)
+    const visiblePosts = posts.filter(
+      (post) =>
+        post.title.toLowerCase().includes(normalizedSearch) ||
+        (post.tags ?? "").toLowerCase().includes(normalizedSearch),
     );
 
     const sortedPosts = [...visiblePosts];
@@ -52,7 +56,8 @@ function Home() {
       sortedPosts.sort((a, b) => b.likes - a.likes);
     } else {
       sortedPosts.sort(
-        (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        (a, b) =>
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
       );
     }
 
@@ -64,24 +69,26 @@ function Home() {
       <h1>Latest Posts</h1>
 
       <div className="controls">
-            <input
-              type="text"
+        <input
+          type="text"
           placeholder="Search by title..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
         />
 
         <select value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
           <option value="newest">Newest</option>
           <option value="likes">Most liked</option>
-            </select>
-          </div>
+        </select>
+      </div>
 
       {loading && <p>Loading posts...</p>}
       {errorMsg && <p style={{ color: "red" }}>{errorMsg}</p>}
-      {!loading && !errorMsg && filteredPosts.length === 0 && <p>No posts yet.</p>}
+      {!loading && !errorMsg && filteredPosts.length === 0 && (
+        <p>No posts yet.</p>
+      )}
 
-          <PostList posts={filteredPosts} />
+      <PostList posts={filteredPosts} />
     </div>
   );
 }
