@@ -91,4 +91,23 @@ export async function getSession() {
     return data?.session ?? null;
     // if (error) throw error;
     // return data.session;
+}
+
+// Fetch the profile record for the currently authenticated user. Returns null if
+// there is no user or if the profile could not be retrieved.
+export async function getCurrentUserProfile() {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return null;
+
+    const { data: profile, error } = await supabase
+        .from("profiles")
+        .select("id, username, role")
+        .eq("id", user.id)
+        .maybeSingle();
+
+    if (error) {
+        console.error("Error fetching current user profile:", error);
+        throw error;
+    }
+    return profile;
 } 

@@ -26,6 +26,16 @@ ON public.posts
 FOR DELETE 
 USING (auth.uid() = author_id);
 
+-- Allow admins to delete any posts
+CREATE POLICY "Admins can delete any posts"
+ON public.posts
+FOR DELETE
+USING (
+  exists(
+    select 1 from public.profiles p where p.id = auth.uid() and p.role = 'admin'
+  )
+);
+
 -- Enable RLS on comments table
 ALTER TABLE public.comments ENABLE ROW LEVEL SECURITY;
 
@@ -53,6 +63,16 @@ CREATE POLICY "Users can delete own comments"
 ON public.comments 
 FOR DELETE 
 USING (auth.uid() = author_id);
+
+-- Allow admins to delete any comments
+CREATE POLICY "Admins can delete any comments"
+ON public.comments
+FOR DELETE
+USING (
+  exists(
+    select 1 from public.profiles p where p.id = auth.uid() and p.role = 'admin'
+  )
+);
 
 -- Enable RLS on votes table
 ALTER TABLE public.votes ENABLE ROW LEVEL SECURITY;

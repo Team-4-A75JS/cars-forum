@@ -11,7 +11,8 @@ import {
 } from "../../services/postService";
 import CommentList from "../../components/CommentList/CommentList.jsx";
 import AddCommentForm from "../../components/AddCommentForm/AddCommentForm.jsx";
-import { getCurrentUserProfile } from "../../services/authService"; // used to fetch logged-in profile
+import { getCurrentUserProfile } from "../../services/authService";
+import "./PostDetails.css";
 
 function PostDetails() {
   const { postId } = useParams();
@@ -94,41 +95,41 @@ function PostDetails() {
   };
 
   return (
-    <div style={{ maxWidth: "800px", margin: "20px auto" }}>
+    <div className="post-details">
       <h1>{post.title}</h1>
       {post.tags && post.tags.trim().length > 0 && (
-        <div style={{ backgroundColor: "#f0f0f0", padding: "8px 12px", borderRadius: "4px", marginBottom: "15px", fontSize: "14px" }}>
+        <div className="post-details-tags">
           <strong>Tags:</strong> {post.tags}
         </div>
       )}
-      <p><strong>Author:</strong> {post.author}</p>
-      <div style={{ lineHeight: "1.6", marginBottom: "20px", whiteSpace: "pre-wrap" }}>
+      <p className="post-details-author"><strong>Author:</strong> {post.author}</p>
+      <div className="post-details-content">
         {post.content}
       </div>
 
-      <div style={{ marginTop: "20px", paddingTop: "20px", borderTop: "1px solid #ccc" }}>
-        <button onClick={handleLike} style={{ padding: "8px 16px", marginRight: "10px", cursor: "pointer" }}>
+      <div className="post-actions">
+        <button className="like-btn" onClick={handleLike}>
           {liked ? "Unlike" : "Like"}
         </button>
-        <span style={{ marginLeft: "10px" }}>{likes} likes</span>
+        <span className="likes-count">{likes} likes</span>
         {currentProfile && (currentProfile.id === post.authorId || currentProfile.role === "admin") && (
           <button
+            className="btn-delete"
             onClick={async () => {
               if (window.confirm("Delete this post?")) {
                 await deletePost(post.id);
                 navigate("/");
               }
             }}
-            style={{ marginLeft: "20px", padding: "8px 16px", backgroundColor: "#c00", color: "#fff", cursor: "pointer" }}
           >
             Delete Post
           </button>
         )}
       </div>
 
-      <div style={{ marginTop: "40px", paddingTop: "20px", borderTop: "1px solid #ccc" }}>
+      <div className="comments-section">
         <h2>Comments</h2>
-        {commentError && <p style={{ color: "red" }}>{commentError}</p>}
+        {commentError && <p className="comment-error">{commentError}</p>}
         <AddCommentForm onAddComment={handleAddComment} isSubmitting={commentLoading} />
         <CommentList
           comments={comments}

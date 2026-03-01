@@ -63,23 +63,24 @@ function Home() {
     <div className="home-container">
       <h1>Latest Posts</h1>
 
-      <div className="controls">
-            <input
-              type="text"
+      <div className="search-wrapper">
+        <input
+          type="text"
+          className="search-input"
           placeholder="Search by title..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
         />
 
         <select value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
           <option value="newest">Newest</option>
           <option value="likes">Most liked</option>
-            </select>
-          </div>
+        </select>
+      </div>
 
-      {loading && <p>Loading posts...</p>}
-      {errorMsg && <p style={{ color: "red" }}>{errorMsg}</p>}
-      {!loading && !errorMsg && filteredPosts.length === 0 && <p>No posts yet.</p>}
+      {loading && <p className="loading-message">Loading posts...</p>}
+      {errorMsg && <p className="error-banner">{errorMsg}</p>}
+      {!loading && !errorMsg && filteredPosts.length === 0 && <p className="no-posts-message">No posts yet.</p>}
 
           <PostList posts={filteredPosts} />
     </div>

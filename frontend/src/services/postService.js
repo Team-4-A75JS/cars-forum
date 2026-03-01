@@ -117,6 +117,7 @@ export async function getAllPosts() {
       title: post.title,
       content: post.content,
       author: profilesMap[post.author_id] ?? "Unknown",
+      authorId: post.author_id,
       tags: post.tags && post.tags.trim().length > 0 ? post.tags : "",
       likes: likesByPostId[post.id] ?? 0,
       commentsCount: commentsByPostId[post.id] ?? 0,
@@ -146,10 +147,10 @@ export async function getPostById(postId) {
 
     if (!post) return null;
 
-    // Fetch author profile
+    // Fetch author profile (including role for authorization)
     const { data: profile } = await supabase
       .from("profiles")
-      .select("username")
+      .select("username, role")
       .eq("id", post.author_id)
       .maybeSingle();
 
@@ -175,6 +176,8 @@ export async function getPostById(postId) {
       title: post.title,
       content: post.content,
       author: profile?.username ?? "Unknown",
+      authorId: post.author_id,
+      authorRole: profile?.role ?? "user",
       tags: post.tags || "",
       likes: likesCount ?? 0,
       commentsCount: commentsCount ?? 0,
@@ -205,7 +208,7 @@ export async function getCommentsByPostId(postId) {
     const authorIds = [...new Set(comments.map(c => c.author_id))];
     const { data: profiles } = await supabase
       .from("profiles")
-      .select("id, username")
+      .select("id, username, role")
       .in("id", authorIds);
 
     const profilesMap = {};
@@ -216,6 +219,7 @@ export async function getCommentsByPostId(postId) {
     return comments.map(comment => ({
       id: comment.id,
       author: profilesMap[comment.author_id] ?? "Unknown",
+      authorId: comment.author_id,
       text: comment.content,
       createdAt: comment.created_at,
       postId: comment.post_id,
@@ -225,6 +229,19 @@ export async function getCommentsByPostId(postId) {
     console.error("getCommentsByPostId exception:", err);
     throw err;
   }
+}
+
+export async function deleteComment(commentId) {
+  const { error } = await supabase
+    .from("comments")
+    .delete()
+    .eq("id", commentId);
+
+  if (error) {
+    console.error("deleteComment error:", error);
+    throw error;
+  }
+  return true;
 }
 
 export async function addComment(postId, text, parentCommentId = null) {
