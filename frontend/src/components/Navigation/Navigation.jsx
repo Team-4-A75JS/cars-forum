@@ -16,6 +16,10 @@ const handleLogout = async () => {
 
   return (
     <nav className="nav">
+      <div className="nav-left" />
+      <div className="nav-brand">
+        <span className="nav-title">Car Forum</span>
+      </div>
       <ul className="nav-list">
         <li>
           <Link to="/">Home</Link>

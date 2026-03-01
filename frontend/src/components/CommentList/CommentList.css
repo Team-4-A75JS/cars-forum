@@ -1,0 +1,9 @@
+.comment-list {
+  margin-top: 20px;
+}
+
+.comment-list p {
+  color: var(--text-muted);
+  font-style: italic;
+  margin: 16px 0;
+}

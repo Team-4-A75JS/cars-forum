@@ -1,63 +1,4 @@
-// import { supabase } from "./frontend/src/config/supabase-config";
-
-// export async function registerUser({ email, password, username, firstName, lastName }) {
-//     const { data, error } = await supabase.auth.signUp({
-//         email,
-//         password,
-//         options: {
-//             data: {
-//                 username,
-//                 first_name: firstName,
-//                 last_name: lastName,
-//             },
-//         },
-//     });
-
-//     if (error) throw error;
-
-//     try {
-//         await ensureProfileForCurrentUser(data?.user ?? null);
-//     } catch (profileError) {
-//         console.warn("Profile sync failed after register:", profileError.message);
-//     }
-
-//     return data;
-// }
-
-// export async function loginUser({ email, password }) {
-//     const { data, error } = await supabase.auth.signInWithPassword({
-//         email,
-//         password,
-//     });
-
-//     if (error) throw error;
-
-//     try {
-//         await ensureProfileForCurrentUser(data?.user ?? null);
-//     } catch (profileError) {
-//         console.warn("Profile sync failed after login:", profileError.message);
-//     }
-
-//     return data;
-// }
-
-// export async function logoutUser() {
-//     const { error } = await supabase.auth.signOut();
-//     if (error) throw error;
-// }
-
-// export async function getSession() {
-//     const { data, error } = await supabase.auth.getSession();
-//     if (error) return null;
-//     return data?.session ?? null;
-//     // if (error) throw error;
-//     // return data.session;
-// } 
-
-
-
- 
- import { supabase } from "../config/supabase-config";
+import { supabase } from "../config/supabase-config";
  
 function buildProfilePayload(user) {
     const metadata = user?.user_metadata ?? {};
@@ -150,4 +91,23 @@ export async function getSession() {
     return data?.session ?? null;
     // if (error) throw error;
     // return data.session;
+}
+
+// Fetch the profile record for the currently authenticated user. Returns null if
+// there is no user or if the profile could not be retrieved.
+export async function getCurrentUserProfile() {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return null;
+
+    const { data: profile, error } = await supabase
+        .from("profiles")
+        .select("id, username, role")
+        .eq("id", user.id)
+        .maybeSingle();
+
+    if (error) {
+        console.error("Error fetching current user profile:", error);
+        throw error;
+    }
+    return profile;
 }

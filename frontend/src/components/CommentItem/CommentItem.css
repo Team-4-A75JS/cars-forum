@@ -1,0 +1,52 @@
+.comment-item {
+  position: relative;
+  padding: 12px 16px;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  margin-bottom: 12px;
+  background-color: var(--bg-secondary);
+  transition: all 0.2s ease;
+}
+
+.comment-item:hover {
+  box-shadow: var(--shadow-sm);
+  border-color: var(--primary-light);
+}
+
+.comment-item p {
+  margin: 4px 0;
+  color: var(--text-secondary);
+  font-size: 14px;
+  padding-right: 50px;
+}
+
+.comment-item p:first-child {
+  margin-bottom: 8px;
+  color: var(--text-primary);
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.comment-item button {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: var(--danger-color);
+  color: white;
+  border: none;
+  padding: 4px 8px;
+  cursor: pointer;
+  border-radius: 3px;
+  font-size: 12px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.comment-item button:hover {
+  background: #b91c1c;
+  box-shadow: var(--shadow-sm);
+}
+
+.comment-item button:active {
+  transform: scale(0.95);
+}

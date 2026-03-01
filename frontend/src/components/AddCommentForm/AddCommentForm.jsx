@@ -1,4 +1,5 @@
 import { useState } from "react";
+import "./AddCommentForm.css";
 
 function AddCommentForm({ onAddComment, isSubmitting = false }) {
     const [text, setText] = useState("")
@@ -17,12 +18,13 @@ function AddCommentForm({ onAddComment, isSubmitting = false }) {
     }
 
     return (
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={handleSubmit} className="add-comment-form">
             <textarea
                 placeholder="Write a comment..."
                 value={text}
                 onChange={(e) => setText(e.target.value)}
                 disabled={isSubmitting}
+                rows={6}
             />
 
             <button type="submit" disabled={isSubmitting}>
