@@ -85,10 +85,7 @@ function Home() {
 
       {loading && <p className="loading-message">Loading posts...</p>}
       {errorMsg && <p className="error-banner">{errorMsg}</p>}
-      {!loading && !errorMsg && filteredPosts.length === 0 && (
-        <p className="no-posts-message">No posts yet.</p>
-      )}
-
+      {!loading && !errorMsg && filteredPosts.length === 0 && <p className="no-posts-message">No posts yet.</p>}
 
       <PostList posts={filteredPosts} />
     </div>
