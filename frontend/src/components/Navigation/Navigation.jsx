@@ -7,12 +7,12 @@ import "./Navigation.css";
 function Navigation() {
   const { isAuthed, isAdmin } = useAuth();
 
-const navigate = useNavigate();
+  const navigate = useNavigate();
 
-const handleLogout = async () => {
-  await logoutUser();
-  navigate("/", { replace: true });
-};
+  const handleLogout = async () => {
+    await logoutUser();
+    navigate("/", { replace: true });
+  };
 
   return (
     <nav className="nav">
@@ -44,6 +44,9 @@ const handleLogout = async () => {
 
         {isAuthed && (
           <>
+            <li>
+              <Link to="/profile">My Profile</Link>
+            </li>
             <li>
               <Link to="/create">Create Post</Link>
             </li>

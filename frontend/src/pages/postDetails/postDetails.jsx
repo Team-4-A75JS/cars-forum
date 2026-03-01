@@ -1,3 +1,4 @@
+ 
 import { useParams, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import {
@@ -13,7 +14,6 @@ import CommentList from "../../components/CommentList/CommentList.jsx";
 import AddCommentForm from "../../components/AddCommentForm/AddCommentForm.jsx";
 import { getCurrentUserProfile } from "../../services/authService";
 import "./PostDetails.css";
-
 function PostDetails() {
   const { postId } = useParams();
   const navigate = useNavigate();
@@ -24,7 +24,6 @@ function PostDetails() {
   const [commentLoading, setCommentLoading] = useState(false);
   const [commentError, setCommentError] = useState("");
   const [currentProfile, setCurrentProfile] = useState(null);
-
   useEffect(() => {
     const loadPost = async () => {
       const data = await getPostById(postId);
@@ -33,7 +32,6 @@ function PostDetails() {
         setLikes(data.likes ?? 0);
       }
     };
-
     const loadComments = async () => {
       setCommentLoading(true);
       try {
@@ -43,10 +41,8 @@ function PostDetails() {
         setCommentLoading(false);
       }
     };
-
     loadPost();
     loadComments();
-
     const checkLiked = async () => {
       try {
         const likedState = await userLikedPost(postId);
@@ -55,9 +51,7 @@ function PostDetails() {
         console.error(err);
       }
     };
-
     checkLiked();
-
     // load current user profile for authorization
     const loadProfile = async () => {
       try {
@@ -69,9 +63,7 @@ function PostDetails() {
     };
     loadProfile();
   }, [postId]);
-
   if (!post) return <p>Post not found</p>;
-
   const handleLike = async () => {
     try {
       const result = await likePost(postId);
@@ -81,7 +73,6 @@ function PostDetails() {
       console.error(err);
     }
   };
-
   const handleAddComment = async (text) => {
     setCommentError("");
     try {
@@ -93,7 +84,6 @@ function PostDetails() {
       setCommentError(err.message || "Failed to add comment.");
     }
   };
-
   return (
     <div className="post-details">
       <h1>{post.title}</h1>
@@ -106,7 +96,6 @@ function PostDetails() {
       <div className="post-details-content">
         {post.content}
       </div>
-
       <div className="post-actions">
         <button className="like-btn" onClick={handleLike}>
           {liked ? "Unlike" : "Like"}
@@ -126,7 +115,6 @@ function PostDetails() {
           </button>
         )}
       </div>
-
       <div className="comments-section">
         <h2>Comments</h2>
         {commentError && <p className="comment-error">{commentError}</p>}
@@ -147,5 +135,5 @@ function PostDetails() {
     </div>
   );
 }
-
 export default PostDetails;
+ 
