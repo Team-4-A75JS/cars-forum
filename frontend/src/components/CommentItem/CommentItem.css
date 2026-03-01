@@ -27,6 +27,13 @@
   font-size: 14px;
 }
 
+.comment-author-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
 .comment-item button {
   position: absolute;
   top: 8px;

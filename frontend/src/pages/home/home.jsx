@@ -1,4 +1,4 @@
-import "./Home.css";
+import "./home.css";
 import { getAllPosts } from "../../services/postService.js";
 import PostList from "../../components/PostList/PostList.jsx";
 import { useEffect, useMemo, useState } from "react";
@@ -19,9 +19,6 @@ function Home() {
 
       try {
         const data = await getAllPosts();
-        console.log("✅ USING postService.js from src/services/postService.js");
-        console.log("getAllPosts returned:", data);
-        console.log("isArray?", Array.isArray(data));
         if (isMounted) {
           setPosts(Array.isArray(data) ? data : []);
         }

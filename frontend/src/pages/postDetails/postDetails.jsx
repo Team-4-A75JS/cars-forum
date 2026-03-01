@@ -1,4 +1,3 @@
- 
 import { useParams, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import {
@@ -13,57 +12,95 @@ import {
 import CommentList from "../../components/CommentList/CommentList.jsx";
 import AddCommentForm from "../../components/AddCommentForm/AddCommentForm.jsx";
 import { getCurrentUserProfile } from "../../services/authService";
+import { getPrimaryBadge } from "../../utils/reputation";
 import "./PostDetails.css";
+
 function PostDetails() {
   const { postId } = useParams();
   const navigate = useNavigate();
   const [post, setPost] = useState(null);
+  const [postLoading, setPostLoading] = useState(true);
+  const [postError, setPostError] = useState("");
   const [likes, setLikes] = useState(0);
   const [liked, setLiked] = useState(false);
   const [comments, setComments] = useState([]);
   const [commentLoading, setCommentLoading] = useState(false);
+  const [isSubmittingComment, setIsSubmittingComment] = useState(false);
   const [commentError, setCommentError] = useState("");
   const [currentProfile, setCurrentProfile] = useState(null);
+  const primaryBadge = getPrimaryBadge({
+    reputation: post?.authorReputation,
+    postsCount: post?.authorPostsCount,
+    commentsCount: post?.authorCommentsCount,
+    createdAt: post?.authorCreatedAt,
+  });
+
   useEffect(() => {
-    const loadPost = async () => {
-      const data = await getPostById(postId);
-      if (data) {
-        setPost(data);
-        setLikes(data.likes ?? 0);
-      }
-    };
-    const loadComments = async () => {
+    let isMounted = true;
+
+    const loadPage = async () => {
+      setPostLoading(true);
       setCommentLoading(true);
+      setPostError("");
+      setCommentError("");
+
       try {
-        const cdata = await getCommentsByPostId(postId);
-        setComments(cdata);
-      } finally {
-        setCommentLoading(false);
-      }
-    };
-    loadPost();
-    loadComments();
-    const checkLiked = async () => {
-      try {
-        const likedState = await userLikedPost(postId);
-        setLiked(likedState);
-      } catch (err) {
-        console.error(err);
-      }
-    };
-    checkLiked();
-    // load current user profile for authorization
-    const loadProfile = async () => {
-      try {
-        const profile = await getCurrentUserProfile();
+        const [postData, commentsData, profile] = await Promise.all([
+          getPostById(postId),
+          getCommentsByPostId(postId),
+          getCurrentUserProfile().catch(() => null),
+        ]);
+
+        if (!isMounted) return;
+
+        if (!postData) {
+          setPost(null);
+          setPostError("Post not found.");
+          return;
+        }
+
+        setPost(postData);
+        setLikes(postData.likes ?? 0);
+        setComments(commentsData);
         setCurrentProfile(profile);
-      } catch (err) {
-        console.error("Failed to load current profile:", err);
+
+        if (profile) {
+          try {
+            const likedState = await userLikedPost(postId);
+            if (isMounted) {
+              setLiked(likedState);
+            }
+          } catch {
+            if (isMounted) {
+              setLiked(false);
+            }
+          }
+        } else {
+          setLiked(false);
+        }
+      } catch (error) {
+        if (isMounted) {
+          setPostError(error.message || "Failed to load post.");
+        }
+      } finally {
+        if (isMounted) {
+          setPostLoading(false);
+          setCommentLoading(false);
+        }
       }
     };
-    loadProfile();
+
+    loadPage();
+
+    return () => {
+      isMounted = false;
+    };
   }, [postId]);
+
+  if (postLoading) return <p>Loading post...</p>;
+  if (postError) return <p>{postError}</p>;
   if (!post) return <p>Post not found</p>;
+
   const handleLike = async () => {
     try {
       const result = await likePost(postId);
@@ -75,6 +112,7 @@ function PostDetails() {
   };
   const handleAddComment = async (text) => {
     setCommentError("");
+    setIsSubmittingComment(true);
     try {
       await addComment(postId, text);
       const cdata = await getCommentsByPostId(postId);
@@ -82,17 +120,33 @@ function PostDetails() {
     } catch (err) {
       console.error(err);
       setCommentError(err.message || "Failed to add comment.");
+    } finally {
+      setIsSubmittingComment(false);
     }
   };
   return (
     <div className="post-details">
       <h1>{post.title}</h1>
+      {post.imageUrl && (
+        <img
+          className="post-details-image"
+          src={post.imageUrl}
+          alt={post.title}
+        />
+      )}
       {post.tags && post.tags.trim().length > 0 && (
         <div className="post-details-tags">
           <strong>Tags:</strong> {post.tags}
         </div>
       )}
-      <p className="post-details-author"><strong>Author:</strong> {post.author}</p>
+      <p className="post-details-author">
+        <strong>Author:</strong> {post.author}
+        {primaryBadge && (
+          <span className={`badge-chip badge-${primaryBadge.color}`}>
+            {primaryBadge.label}
+          </span>
+        )}
+      </p>
       <div className="post-details-content">
         {post.content}
       </div>
@@ -118,7 +172,8 @@ function PostDetails() {
       <div className="comments-section">
         <h2>Comments</h2>
         {commentError && <p className="comment-error">{commentError}</p>}
-        <AddCommentForm onAddComment={handleAddComment} isSubmitting={commentLoading} />
+        <AddCommentForm onAddComment={handleAddComment} isSubmitting={isSubmittingComment} />
+        {commentLoading && <p>Loading comments...</p>}
         <CommentList
           comments={comments}
           currentProfile={currentProfile}

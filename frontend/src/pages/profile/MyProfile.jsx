@@ -1,9 +1,11 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "../../context/useAuth";
-import { updateMyProfile } from "../../services/profileService";
+import { getMyProfile, updateMyProfile } from "../../services/profileService";
+import { buildProfileStats, getBadgesForProfile } from "../../utils/reputation";
 
 export default function MyProfile() {
   const { profile, authLoading } = useAuth();
+  const [profileDetails, setProfileDetails] = useState(null);
 
   const [form, setForm] = useState({
     username: "",
@@ -25,8 +27,27 @@ export default function MyProfile() {
     }
   }, [profile]);
 
+  useEffect(() => {
+    const loadProfile = async () => {
+      if (!profile) return;
+
+      try {
+        const freshProfile = await getMyProfile();
+        setProfileDetails(freshProfile);
+      } catch {
+        setProfileDetails(profile);
+      }
+    };
+
+    loadProfile();
+  }, [profile]);
+
   if (authLoading) return <p>Loading...</p>;
   if (!profile) return <p>No profile loaded.</p>;
+
+  const visibleProfile = profileDetails ?? profile;
+  const stats = buildProfileStats(visibleProfile);
+  const badges = getBadgesForProfile(visibleProfile);
 
   const onChange = (e) => {
     setForm((s) => ({ ...s, [e.target.name]: e.target.value }));
@@ -56,7 +77,8 @@ export default function MyProfile() {
     }
 
     try {
-      await updateMyProfile(form);
+      const updatedProfile = await updateMyProfile(form);
+      setProfileDetails(updatedProfile);
       setSuccessMsg("Profile updated!");
     } catch (err) {
       setErrorMsg(err.message || "Failed to update profile.");
@@ -70,11 +92,54 @@ export default function MyProfile() {
       <h1>My Profile</h1>
 
       <p>
-        <strong>Role:</strong> {profile.role}
+        <strong>Role:</strong> {visibleProfile.role}
       </p>
       <p>
-        <strong>Blocked:</strong> {profile.is_blocked ? "YES" : "NO"}
+        <strong>Blocked:</strong> {visibleProfile.is_blocked ? "YES" : "NO"}
       </p>
+
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
+          gap: 12,
+          marginBottom: 20,
+          maxWidth: 720,
+        }}
+      >
+        <div className="profile-stat-card">
+          <strong>Reputation</strong>
+          <div>{stats.reputation}</div>
+        </div>
+        <div className="profile-stat-card">
+          <strong>Posts</strong>
+          <div>{stats.postsCount}</div>
+        </div>
+        <div className="profile-stat-card">
+          <strong>Comments</strong>
+          <div>{stats.commentsCount}</div>
+        </div>
+        <div className="profile-stat-card">
+          <strong>Member for</strong>
+          <div>{stats.memberDays} days</div>
+        </div>
+      </div>
+
+      <div style={{ marginBottom: 24, maxWidth: 720 }}>
+        <h2>Badges</h2>
+        {badges.length === 0 ? (
+          <p>No badges yet. Start posting and getting votes.</p>
+        ) : (
+          <div style={{ display: "grid", gap: 10 }}>
+            {badges.map((badge) => (
+              <div key={badge.id} className={`badge-card badge-${badge.color}`}>
+                <strong>{badge.label}</strong>
+                <div>{badge.description}</div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
 
       <form
         onSubmit={onSubmit}

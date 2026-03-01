@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { addPost } from "../../services/postService";
+import { addPost, uploadPostImage } from "../../services/postService";
 import { supabase } from "../../config/supabase-config";
 import "./CreatePost.css";
 
@@ -8,9 +8,23 @@ function CreatePost() {
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [tags, setTags] = useState("");
+  const [imageFile, setImageFile] = useState(null);
+  const [previewUrl, setPreviewUrl] = useState("");
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!imageFile) {
+      setPreviewUrl("");
+      return undefined;
+    }
+
+    const objectUrl = URL.createObjectURL(imageFile);
+    setPreviewUrl(objectUrl);
+
+    return () => URL.revokeObjectURL(objectUrl);
+  }, [imageFile]);
 
   const validateForm = () => {
     const newErrors = {};
@@ -33,6 +47,14 @@ function CreatePost() {
 
     if (tags.length > 64) {
       newErrors.tags = "Tags must not exceed 64 characters total";
+    }
+
+    if (imageFile && !imageFile.type.startsWith("image/")) {
+      newErrors.imageFile = "Selected file must be an image";
+    }
+
+    if (imageFile && imageFile.size > 5 * 1024 * 1024) {
+      newErrors.imageFile = "Image must be 5MB or less";
     }
 
     return newErrors;
@@ -59,7 +81,14 @@ function CreatePost() {
         return;
       }
 
-      await addPost({ title, content, tags });
+      let finalImageUrl = "";
+
+      if (imageFile) {
+        const uploadResult = await uploadPostImage(imageFile);
+        finalImageUrl = uploadResult.publicUrl;
+      }
+
+      await addPost({ title, content, tags, imageUrl: finalImageUrl });
       navigate("/");
     } catch (err) {
       console.error("Post creation error:", err);
@@ -91,8 +120,7 @@ function CreatePost() {
             style={{
               width: "100%",
               padding: "8px",
-              borderColor: errors.title ? "red" : "#ccc",
-              border: "1px solid",
+              border: `1px solid ${errors.title ? "red" : "#ccc"}`,
               borderRadius: "4px",
             }}
           />
@@ -112,13 +140,37 @@ function CreatePost() {
             style={{
               width: "100%",
               padding: "8px",
-              borderColor: errors.tags ? "red" : "#ccc",
-              border: "1px solid",
+              border: `1px solid ${errors.tags ? "red" : "#ccc"}`,
               borderRadius: "4px",
             }}
           />
           {errors.tags && <div style={{ color: "red", fontSize: "12px", marginTop: "4px" }}>{errors.tags}</div>}
         </div>
+
+        <div style={{ marginBottom: "15px" }}>
+          <label>Upload image:</label>
+          <br />
+          <input
+            type="file"
+            accept="image/*"
+            onChange={(e) => setImageFile(e.target.files?.[0] ?? null)}
+          />
+          {errors.imageFile && <div style={{ color: "red", fontSize: "12px", marginTop: "4px" }}>{errors.imageFile}</div>}
+          <div style={{ fontSize: "12px", color: "#666", marginTop: "4px" }}>
+            Optional. Upload an image file up to 5MB.
+          </div>
+        </div>
+
+        {previewUrl && (
+          <div style={{ marginBottom: "15px" }}>
+            <div style={{ fontSize: "12px", color: "#666", marginBottom: "6px" }}>Preview</div>
+            <img
+              src={previewUrl}
+              alt="Post preview"
+              style={{ width: "100%", maxHeight: "280px", objectFit: "cover", borderRadius: "8px", border: "1px solid #ccc" }}
+            />
+          </div>
+        )}
 
         <div style={{ marginBottom: "15px" }}>
           <label>Content:</label>
@@ -131,8 +183,7 @@ function CreatePost() {
             style={{
               width: "100%",
               padding: "8px",
-              borderColor: errors.content ? "red" : "#ccc",
-              border: "1px solid",
+              border: `1px solid ${errors.content ? "red" : "#ccc"}`,
               borderRadius: "4px",
               fontFamily: "Arial, sans-serif",
             }}
