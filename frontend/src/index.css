@@ -239,3 +239,9 @@ textarea {
   border-color: #fda4af;
   color: #be123c;
 }
+
+.form-group {
+  display: grid;
+  grid-template-columns: 140px 1fr;
+  align-items: center;
+}

@@ -81,6 +81,15 @@
   flex-wrap: wrap;
 }
 
+.post-author-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1px solid var(--border-color);
+  background-color: var(--bg-hover);
+}
+
 .post-card p {
   margin: 8px 0;
   color: var(--text-secondary);

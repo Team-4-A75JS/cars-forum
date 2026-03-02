@@ -1,11 +1,14 @@
 import { useEffect, useState } from "react";
+import { supabase } from "../../config/supabase-config";
 import { useAuth } from "../../context/useAuth";
-import { getMyProfile, updateMyProfile } from "../../services/profileService";
+import { updateMyProfile } from "../../services/profileService";
 import { buildProfileStats, getBadgesForProfile } from "../../utils/reputation";
 
 export default function MyProfile() {
-  const { profile, authLoading } = useAuth();
+  const { profile, authLoading, refreshProfile } = useAuth();
   const [profileDetails, setProfileDetails] = useState(null);
+  const [avatarFile, setAvatarFile] = useState(null);
+  const [avatarUploading, setAvatarUploading] = useState(false);
 
   const [form, setForm] = useState({
     username: "",
@@ -17,6 +20,29 @@ export default function MyProfile() {
   const [errorMsg, setErrorMsg] = useState("");
   const [successMsg, setSuccessMsg] = useState("");
 
+  async function uploadAvatar(file) {
+    const { data: userData, error: userErr } = await supabase.auth.getUser();
+    if (userErr) throw userErr;
+    const user = userData?.user;
+    if (!user) throw new Error("You must be logged in.");
+
+    const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
+    const path = `${user.id}/${Date.now()}.${ext}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from("avatars")
+      .upload(path, file, {
+        cacheControl: "3600",
+        upsert: true,
+        contentType: file.type,
+      });
+
+    if (uploadError) throw uploadError;
+
+    const { data } = supabase.storage.from("avatars").getPublicUrl(path);
+    return data.publicUrl;
+  }
+
   useEffect(() => {
     if (profile) {
       setForm({
@@ -25,21 +51,6 @@ export default function MyProfile() {
         last_name: profile.last_name ?? "",
       });
     }
-  }, [profile]);
-
-  useEffect(() => {
-    const loadProfile = async () => {
-      if (!profile) return;
-
-      try {
-        const freshProfile = await getMyProfile();
-        setProfileDetails(freshProfile);
-      } catch {
-        setProfileDetails(profile);
-      }
-    };
-
-    loadProfile();
   }, [profile]);
 
   if (authLoading) return <p>Loading...</p>;
@@ -77,8 +88,22 @@ export default function MyProfile() {
     }
 
     try {
-      const updatedProfile = await updateMyProfile(form);
+      let avatarUrl = visibleProfile?.avatar_url ?? null;
+      if (avatarFile) {
+        setAvatarUploading(true);
+        try {
+          avatarUrl = await uploadAvatar(avatarFile);
+        } finally {
+          setAvatarUploading(false);
+        }
+      }
+
+      const updatedProfile = await updateMyProfile({
+        ...form,
+        avatar_url: avatarUrl,
+      });
       setProfileDetails(updatedProfile);
+      await refreshProfile();
       setSuccessMsg("Profile updated!");
     } catch (err) {
       setErrorMsg(err.message || "Failed to update profile.");
@@ -145,33 +170,58 @@ export default function MyProfile() {
         onSubmit={onSubmit}
         style={{ display: "grid", gap: 8, maxWidth: 420 }}
       >
-        <input
-          name="username"
-          value={form.username}
-          onChange={onChange}
-          placeholder="Username"
-          minLength={3}
-          required
-        />
-        <input
-          name="first_name"
-          value={form.first_name}
-          onChange={onChange}
-          placeholder="First name"
-          minLength={4}
-          required
-        />
-        <input
-          name="last_name"
-          value={form.last_name}
-          onChange={onChange}
-          placeholder="Last name"
-          minLength={4}
-          required
-        />
+        <div className="form-group">
+          <label htmlFor="username">User name:</label>
+          <input
+            id="username"
+            name="username"
+            value={form.username}
+            onChange={onChange}
+            minLength={3}
+            required
+          />
+        </div>
 
-        <button type="submit" disabled={loading}>
-          {loading ? "Saving..." : "Save changes"}
+        <div className="form-group">
+          <label htmlFor="first_name">First name:</label>
+          <input
+            id="first_name"
+            name="first_name"
+            value={form.first_name}
+            onChange={onChange}
+            minLength={4}
+            required
+          />
+        </div>
+
+        <div className="form-group">
+          <label htmlFor="last_name">Last name:</label>
+          <input
+            id="last_name"
+            name="last_name"
+            value={form.last_name}
+            onChange={onChange}
+            minLength={4}
+            required
+          />
+        </div>
+
+        <div className="form-group">
+          <label htmlFor="avatar">Profile picture:</label>
+          <input
+            id="avatar"
+            type="file"
+            accept="image/*"
+            onChange={(e) => setAvatarFile(e.target.files?.[0] ?? null)}
+          />
+        </div>
+
+        <button type="submit" disabled={loading || avatarUploading}>
+          {avatarUploading
+            ? "Uploading..."
+            : loading
+              ? "Saving..."
+              : "Save changes"}
         </button>
 
         {errorMsg && <p style={{ color: "red" }}>{errorMsg}</p>}

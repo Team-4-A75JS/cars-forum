@@ -56,14 +56,32 @@ function PostItem({ post }) {
         </p>
       )}
 
-      <p className="post-author-line">
-        Author: {post.author}
+      <div className="post-author-line">
+        <span>Author:</span>
+
+        <img
+          src={post.authorAvatar || "/default-avatar.png"}
+          alt=""
+          style={{
+            width: 28,
+            height: 28,
+            borderRadius: "50%",
+            objectFit: "cover",
+          }}
+          onError={(e) => {
+            e.currentTarget.src = "/default-avatar.png";
+          }}
+        />
+
+        <span>{post.author}</span>
+
         {primaryBadge && (
           <span className={`badge-chip badge-${primaryBadge.color}`}>
             {primaryBadge.label}
           </span>
         )}
-      </p>
+      </div>
+
       <p className="post-card-excerpt">{post.content}</p>
       <p>
         <button onClick={handleLike}>{liked ? "Unlike" : "Like"}</button>

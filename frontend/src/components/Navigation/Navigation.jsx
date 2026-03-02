@@ -51,6 +51,9 @@ function Navigation() {
               <Link to="/create">Create Post</Link>
             </li>
             <li>
+              <Link to="/vin-check">VIN Check</Link>
+            </li>
+            <li>
               <button onClick={handleLogout}>Logout</button>
             </li>
           </>

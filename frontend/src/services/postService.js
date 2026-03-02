@@ -65,6 +65,7 @@ function buildImagePath(userId, file) {
 function mapPostRecord(post, options = {}) {
   const {
     author = post.profiles?.username ?? "Unknown",
+    authorAvatar = post.profiles?.avatar_url ?? null,
     authorRole = "user",
     authorReputation = 0,
     authorPostsCount = 0,
@@ -79,6 +80,7 @@ function mapPostRecord(post, options = {}) {
     title: post.title,
     content: post.content,
     author,
+    authorAvatar,
     authorId: post.author_id,
     authorRole,
     authorReputation,
@@ -96,7 +98,7 @@ function mapPostRecord(post, options = {}) {
 export async function getAllPosts() {
   const { data: posts, error: postsError } = await supabase
     .from("posts")
-    .select("*, profiles(username, created_at)")
+    .select("*, profiles(username, created_at,  avatar_url)")
     .order("created_at", { ascending: false });
 
   if (postsError) throw postsError;

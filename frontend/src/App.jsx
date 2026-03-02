@@ -11,6 +11,7 @@ import RequireAdmin from "./components/Guards/RequireAdmin.jsx";
 import AdminDashboard from "./pages/admin/AdminDashboard.jsx";
 import RequireAuth from "./components/Guards/RequireAuth.jsx";
 import MyProfile from "./pages/profile/MyProfile.jsx";
+import VinCheck from "./pages/vin/VinCheck.jsx";
 
 function App() {
   return (
@@ -33,6 +34,14 @@ function App() {
             element={
               <RequireAuth>
                 <MyProfile />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/vin-check"
+            element={
+              <RequireAuth>
+                <VinCheck />
               </RequireAuth>
             }
           />
