@@ -1,7 +1,5 @@
 import { supabase } from "../config/supabase-config";
 import { ensureProfileForCurrentUser } from "./authService";
-import { getProfileStatsByIds } from "./reputationService";
-
 const POST_IMAGE_BUCKET = "post-images";
 
 async function getAuthenticatedUser() {
@@ -47,6 +45,30 @@ async function buildPostStats(postIds) {
   return { likesByPostId, commentsByPostId };
 }
 
+async function buildUserVotes(postIds) {
+  if (postIds.length === 0) {
+    return {};
+  }
+
+  const { data: authData, error: authError } = await supabase.auth.getUser();
+  if (authError || !authData.user) {
+    return {};
+  }
+
+  const { data: votes, error } = await supabase
+    .from("votes")
+    .select("post_id, vote_type")
+    .eq("user_id", authData.user.id)
+    .in("post_id", postIds)
+    .is("comment_id", null);
+
+  if (error) throw error;
+
+  return Object.fromEntries(
+    (votes ?? []).map((vote) => [vote.post_id, vote.vote_type]),
+  );
+}
+
 function getFileExtension(fileName = "") {
   const segments = fileName.split(".");
   return segments.length > 1 ? segments.pop()?.toLowerCase() ?? "jpg" : "jpg";
@@ -67,12 +89,9 @@ function mapPostRecord(post, options = {}) {
     author = post.profiles?.username ?? "Unknown",
     authorAvatar = post.profiles?.avatar_url ?? null,
     authorRole = "user",
-    authorReputation = 0,
-    authorPostsCount = 0,
-    authorCommentsCount = 0,
-    authorCreatedAt = post.profiles?.created_at ?? null,
     likes = 0,
     commentsCount = 0,
+    userVote = 0,
   } = options;
 
   return {
@@ -83,14 +102,11 @@ function mapPostRecord(post, options = {}) {
     authorAvatar,
     authorId: post.author_id,
     authorRole,
-    authorReputation,
-    authorPostsCount,
-    authorCommentsCount,
-    authorCreatedAt,
     tags: post.tags && post.tags.trim().length > 0 ? post.tags : "",
     imageUrl: post.image_url ?? "",
     likes,
     commentsCount,
+    userVote,
     createdAt: post.created_at,
   };
 }
@@ -104,22 +120,15 @@ export async function getAllPosts() {
   if (postsError) throw postsError;
   if (!posts || posts.length === 0) return [];
 
-  const profileStatsById = await getProfileStatsByIds(
-    posts.map((post) => post.author_id),
-  );
-  const { likesByPostId, commentsByPostId } = await buildPostStats(
-    posts.map((post) => post.id),
-  );
+  const postIds = posts.map((post) => post.id);
+  const [{ likesByPostId, commentsByPostId }, userVotesByPostId] =
+    await Promise.all([buildPostStats(postIds), buildUserVotes(postIds)]);
 
   return posts.map((post) =>
     mapPostRecord(post, {
-      authorReputation: profileStatsById[post.author_id]?.reputation ?? 0,
-      authorPostsCount: profileStatsById[post.author_id]?.postsCount ?? 0,
-      authorCommentsCount:
-        profileStatsById[post.author_id]?.commentsCount ?? 0,
-      authorCreatedAt: post.profiles?.created_at ?? null,
       likes: likesByPostId[post.id] ?? 0,
       commentsCount: commentsByPostId[post.id] ?? 0,
+      userVote: userVotesByPostId[post.id] ?? 0,
     }),
   );
 }
@@ -136,13 +145,11 @@ export async function getPostById(postId) {
 
   const { data: profile, error: profileError } = await supabase
     .from("profiles")
-    .select("username, role, created_at")
+    .select("username, role")
     .eq("id", post.author_id)
     .maybeSingle();
 
   if (profileError) throw profileError;
-
-  const profileStatsById = await getProfileStatsByIds([post.author_id]);
   const [
     { count: likes, error: likesError },
     { count: commentsCount, error: commentsError },
@@ -165,10 +172,6 @@ export async function getPostById(postId) {
   return mapPostRecord(post, {
     author: profile?.username ?? "Unknown",
     authorRole: profile?.role ?? "user",
-    authorReputation: profileStatsById[post.author_id]?.reputation ?? 0,
-    authorPostsCount: profileStatsById[post.author_id]?.postsCount ?? 0,
-    authorCommentsCount: profileStatsById[post.author_id]?.commentsCount ?? 0,
-    authorCreatedAt: profile?.created_at ?? null,
     likes,
     commentsCount,
   });
@@ -177,26 +180,17 @@ export async function getPostById(postId) {
 export async function getCommentsByPostId(postId) {
   const { data: comments, error } = await supabase
     .from("comments")
-    .select("*, profiles(username, role, created_at)")
+    .select("*, profiles(username, role)")
     .eq("post_id", postId)
     .order("created_at", { ascending: true });
 
   if (error) throw error;
   if (!comments || comments.length === 0) return [];
 
-  const profileStatsById = await getProfileStatsByIds(
-    comments.map((comment) => comment.author_id),
-  );
-
   return comments.map((comment) => ({
     id: comment.id,
     author: comment.profiles?.username ?? "Unknown",
     authorId: comment.author_id,
-    authorReputation: profileStatsById[comment.author_id]?.reputation ?? 0,
-    authorPostsCount: profileStatsById[comment.author_id]?.postsCount ?? 0,
-    authorCommentsCount:
-      profileStatsById[comment.author_id]?.commentsCount ?? 0,
-    authorCreatedAt: comment.profiles?.created_at ?? null,
     text: comment.content,
     createdAt: comment.created_at,
     postId: comment.post_id,
@@ -343,64 +337,100 @@ export async function updatePost(postId, updates) {
   return data;
 }
 
-export async function likePost(postId) {
-  const user = await getAuthenticatedUser();
-
-  const { data: existingVotes, error: existingVotesError } = await supabase
-    .from("votes")
-    .select("id")
-    .eq("user_id", user.id)
-    .eq("post_id", postId)
-    .is("comment_id", null);
-
-  if (existingVotesError) throw existingVotesError;
-
-  const alreadyLiked = (existingVotes ?? []).length > 0;
-
-  if (alreadyLiked) {
-    const { error } = await supabase
-      .from("votes")
-      .delete()
-      .eq("user_id", user.id)
-      .eq("post_id", postId)
-      .is("comment_id", null);
-
-    if (error) throw error;
-  } else {
-    const { error } = await supabase.from("votes").insert({
-      user_id: user.id,
-      post_id: postId,
-      vote_type: 1,
-    });
-
-    if (error) throw error;
-  }
-
-  const { count, error: countError } = await supabase
+async function getPostLikesCount(postId) {
+  const { count, error } = await supabase
     .from("votes")
     .select("*", { count: "exact", head: true })
     .eq("post_id", postId)
     .is("comment_id", null)
     .eq("vote_type", 1);
 
-  if (countError) throw countError;
-
-  return {
-    liked: !alreadyLiked,
-    likes: count ?? 0,
-  };
+  if (error) throw error;
+  return count ?? 0;
 }
 
-export async function userLikedPost(postId) {
+export async function votePost(postId, voteType) {
+  if (![1, -1].includes(voteType)) {
+    throw new Error("Invalid vote type.");
+  }
+
   const user = await getAuthenticatedUser();
-  const { data, error } = await supabase
+
+  const { data: existingVote, error: existingVoteError } = await supabase
     .from("votes")
-    .select("id")
+    .select("id, vote_type")
     .eq("user_id", user.id)
     .eq("post_id", postId)
     .is("comment_id", null)
-    .eq("vote_type", 1);
+    .maybeSingle();
+
+  if (existingVoteError) throw existingVoteError;
+
+  if (!existingVote) {
+    const { error } = await supabase.from("votes").insert({
+      user_id: user.id,
+      post_id: postId,
+      vote_type: voteType,
+    });
+
+    if (error) throw error;
+  } else if (existingVote.vote_type === voteType) {
+    const { error } = await supabase
+      .from("votes")
+      .delete()
+      .eq("id", existingVote.id);
+
+    if (error) throw error;
+  } else {
+    const { error } = await supabase
+      .from("votes")
+      .update({ vote_type: voteType })
+      .eq("id", existingVote.id);
+
+    if (error) throw error;
+  }
+
+  const likes = await getPostLikesCount(postId);
+
+  return {
+    vote: existingVote?.vote_type === voteType ? 0 : voteType,
+    likes,
+  };
+}
+
+export async function likePost(postId) {
+  const result = await votePost(postId, 1);
+  return {
+    liked: result.vote === 1,
+    likes: result.likes,
+    vote: result.vote,
+  };
+}
+
+export async function downvotePost(postId) {
+  const result = await votePost(postId, -1);
+  return {
+    downvoted: result.vote === -1,
+    likes: result.likes,
+    vote: result.vote,
+  };
+}
+
+export async function getUserPostVote(postId) {
+  const user = await getAuthenticatedUser();
+  const { data, error } = await supabase
+    .from("votes")
+    .select("vote_type")
+    .eq("user_id", user.id)
+    .eq("post_id", postId)
+    .is("comment_id", null)
+    .maybeSingle();
 
   if (error) throw error;
-  return (data ?? []).length > 0;
+  return data?.vote_type ?? 0;
+}
+
+export async function userLikedPost(postId) {
+  const vote = await getUserPostVote(postId);
+  return vote === 1;
 }

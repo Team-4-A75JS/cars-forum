@@ -1,9 +1,10 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import {
+  downvotePost,
   getPostById,
   likePost,
-  userLikedPost,
+  getUserPostVote,
   getCommentsByPostId,
   addComment,
   deletePost,
@@ -12,7 +13,6 @@ import {
 import CommentList from "../../components/CommentList/CommentList.jsx";
 import AddCommentForm from "../../components/AddCommentForm/AddCommentForm.jsx";
 import { getCurrentUserProfile } from "../../services/authService";
-import { getPrimaryBadge } from "../../utils/reputation";
 import "./PostDetails.css";
 
 function PostDetails() {
@@ -22,18 +22,12 @@ function PostDetails() {
   const [postLoading, setPostLoading] = useState(true);
   const [postError, setPostError] = useState("");
   const [likes, setLikes] = useState(0);
-  const [liked, setLiked] = useState(false);
+  const [vote, setVote] = useState(0);
   const [comments, setComments] = useState([]);
   const [commentLoading, setCommentLoading] = useState(false);
   const [isSubmittingComment, setIsSubmittingComment] = useState(false);
   const [commentError, setCommentError] = useState("");
   const [currentProfile, setCurrentProfile] = useState(null);
-  const primaryBadge = getPrimaryBadge({
-    reputation: post?.authorReputation,
-    postsCount: post?.authorPostsCount,
-    commentsCount: post?.authorCommentsCount,
-    createdAt: post?.authorCreatedAt,
-  });
 
   useEffect(() => {
     let isMounted = true;
@@ -66,17 +60,17 @@ function PostDetails() {
 
         if (profile) {
           try {
-            const likedState = await userLikedPost(postId);
+            const currentVote = await getUserPostVote(postId);
             if (isMounted) {
-              setLiked(likedState);
+              setVote(currentVote);
             }
           } catch {
             if (isMounted) {
-              setLiked(false);
+              setVote(0);
             }
           }
         } else {
-          setLiked(false);
+          setVote(0);
         }
       } catch (error) {
         if (isMounted) {
@@ -104,7 +98,17 @@ function PostDetails() {
   const handleLike = async () => {
     try {
       const result = await likePost(postId);
-      setLiked(result.liked);
+      setVote(result.vote);
+      setLikes(result.likes);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleDownvote = async () => {
+    try {
+      const result = await downvotePost(postId);
+      setVote(result.vote);
       setLikes(result.likes);
     } catch (err) {
       console.error(err);
@@ -141,18 +145,22 @@ function PostDetails() {
       )}
       <p className="post-details-author">
         <strong>Author:</strong> {post.author}
-        {primaryBadge && (
-          <span className={`badge-chip badge-${primaryBadge.color}`}>
-            {primaryBadge.label}
-          </span>
-        )}
       </p>
       <div className="post-details-content">
         {post.content}
       </div>
       <div className="post-actions">
-        <button className="like-btn" onClick={handleLike}>
-          {liked ? "Unlike" : "Like"}
+        <button
+          className={vote === 1 ? "like-btn is-active" : "like-btn"}
+          onClick={handleLike}
+        >
+          {vote === 1 ? "Unlike" : "Like"}
+        </button>
+        <button
+          className={vote === -1 ? "downvote-btn is-active" : "downvote-btn"}
+          onClick={handleDownvote}
+        >
+          {vote === -1 ? "Remove downvote" : "Downvote"}
         </button>
         <span className="likes-count">{likes} likes</span>
         {currentProfile && (currentProfile.id === post.authorId || currentProfile.role === "admin") && (

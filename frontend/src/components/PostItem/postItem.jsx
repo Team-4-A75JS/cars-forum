@@ -1,8 +1,7 @@
 import "./postItem.css";
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { likePost } from "../../services/postService";
-import { getPrimaryBadge } from "../../utils/reputation";
+import { downvotePost, likePost } from "../../services/postService";
 
 function PostItem({ post }) {
   const commentsCount =
@@ -11,18 +10,22 @@ function PostItem({ post }) {
       : (post.comments?.length ?? 0);
 
   const [likes, setLikes] = useState(post.likes ?? 0);
-  const [liked, setLiked] = useState(false);
-  const primaryBadge = getPrimaryBadge({
-    reputation: post.authorReputation,
-    postsCount: post.authorPostsCount,
-    commentsCount: post.authorCommentsCount,
-    createdAt: post.authorCreatedAt,
-  });
+  const [vote, setVote] = useState(post.userVote ?? 0);
 
   const handleLike = async () => {
     try {
       const res = await likePost(post.id);
-      setLiked(res.liked);
+      setVote(res.vote);
+      setLikes(res.likes);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleDownvote = async () => {
+    try {
+      const res = await downvotePost(post.id);
+      setVote(res.vote);
       setLikes(res.likes);
     } catch (err) {
       console.error(err);
@@ -60,14 +63,9 @@ function PostItem({ post }) {
         <span>Author:</span>
 
         <img
+          className="post-author-avatar"
           src={post.authorAvatar || "/default-avatar.png"}
           alt=""
-          style={{
-            width: 28,
-            height: 28,
-            borderRadius: "50%",
-            objectFit: "cover",
-          }}
           onError={(e) => {
             e.currentTarget.src = "/default-avatar.png";
           }}
@@ -83,8 +81,19 @@ function PostItem({ post }) {
       </div>
 
       <p className="post-card-excerpt">{post.content}</p>
-      <p>
-        <button onClick={handleLike}>{liked ? "Unlike" : "Like"}</button>
+      <p className="post-vote-row">
+        <button
+          className={vote === 1 ? "vote-button is-active" : "vote-button"}
+          onClick={handleLike}
+        >
+          {vote === 1 ? "Unlike" : "Like"}
+        </button>
+        <button
+          className={vote === -1 ? "vote-button is-active danger" : "vote-button danger"}
+          onClick={handleDownvote}
+        >
+          {vote === -1 ? "Remove downvote" : "Downvote"}
+        </button>
         {likes} likes
       </p>
       <p>Comments: {commentsCount}</p>
