@@ -88,10 +88,12 @@ function mapPostRecord(post, options = {}) {
   const {
     author = post.profiles?.username ?? "Unknown",
     authorAvatar = post.profiles?.avatar_url ?? null,
-    authorRole = "user",
+    authorRole = post.profiles?.role ?? "user",
     likes = 0,
     commentsCount = 0,
     userVote = 0,
+    // allow passing complete profile for downstream components
+    profile = post.profiles || {},
   } = options;
 
   return {
@@ -112,9 +114,12 @@ function mapPostRecord(post, options = {}) {
 }
 
 export async function getAllPosts() {
+  // include additional profile fields that may be used for badges or reputation
   const { data: posts, error: postsError } = await supabase
     .from("posts")
-    .select("*, profiles(username, created_at,  avatar_url)")
+    .select(
+      "*, profiles(username, created_at, avatar_url, reputation, posts_count, comments_count)"
+    )
     .order("created_at", { ascending: false });
 
   if (postsError) throw postsError;
@@ -136,16 +141,18 @@ export async function getAllPosts() {
 export async function getPostById(postId) {
   const { data: post, error: postError } = await supabase
     .from("posts")
-    .select("*")
+    .select("*, profiles(username, role, reputation, posts_count, comments_count, created_at)")
     .eq("id", postId)
     .maybeSingle();
 
   if (postError) throw postError;
   if (!post) return null;
 
+  // profiles returned by the previous query already include the needed fields,
+  // but we'll keep this lookup for backward compatibility. It now fetches extras too.
   const { data: profile, error: profileError } = await supabase
     .from("profiles")
-    .select("username, role")
+    .select("username, role, reputation, posts_count, comments_count, created_at")
     .eq("id", post.author_id)
     .maybeSingle();
 

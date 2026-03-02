@@ -2,6 +2,7 @@ import "./postItem.css";
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { downvotePost, likePost } from "../../services/postService";
+import { getPrimaryBadge } from "../../utils/reputation";
 
 function PostItem({ post }) {
   const commentsCount =
@@ -11,6 +12,9 @@ function PostItem({ post }) {
 
   const [likes, setLikes] = useState(post.likes ?? 0);
   const [vote, setVote] = useState(post.userVote ?? 0);
+
+  // compute badge for author/profile if available (will be null when stats missing)
+  const primaryBadge = getPrimaryBadge(post.profile || post);
 
   const handleLike = async () => {
     try {
